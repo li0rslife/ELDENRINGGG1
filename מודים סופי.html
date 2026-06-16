@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>פאנל מודים - אלדן רינג</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: #121212; color: #ffffff;
+            display: flex; justify-content: center; padding: 20px;
+        }
+        .panel {
+            background: #1e1e1e; padding: 25px; border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 400px;
+        }
+        h2 { text-align: center; color: #d4af37; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top:0;}
+        .section { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+        h3 { margin-top: 0; font-size: 16px; color: #ccc; }
+        
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        button {
+            flex: 1; padding: 10px; border: none; border-radius: 5px;
+            background: #444; color: white; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background: #555; }
+        
+        .btn-active { background: #28a745; color: white; border: 2px solid #fff;}
+        .btn-red { background: #cc3333; } .btn-red:hover { background: #ff4a4a; }
+        .btn-gold { background: #d4af37; color: #111; } .btn-gold:hover { background: #f0d494; }
+        .btn-blue { background: #007bff; } .btn-blue:hover { background: #3395ff; }
+
+        input {
+            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px;
+            border: 1px solid #444; background: #111; color: white; box-sizing: border-box;
+        }
+        
+        .boss-list-preview {
+            background: #111; padding: 10px; border-radius: 5px; max-height: 120px; overflow-y: auto; font-size: 13px;
+        }
+        .boss-entry { border-bottom: 1px solid #333; padding: 5px 0; display: flex; justify-content: space-between; }
+        .delete-btn { color: #ff4a4a; background: none; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <h2>🎮 פאנל ניהול שידור</h2>
+
+        <div class="section" style="border-color: #d4af37;">
+            <h3 style="text-align: center; color: #d4af37;">מצב תצוגה במסך:</h3>
+            <div class="controls">
+                <button id="btn-mode-fight" onclick="setDisplayMode('fighting')">⚔️ נלחם עכשיו</button>
+                <button id="btn-mode-sleep" onclick="setDisplayMode('sleeping')">💤 ישן (פרומפטר)</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="controls">
+                <div style="flex: 1; text-align: center;">
+                    <h3>💀 מיתות (<span id="current-deaths">0</span>)</h3>
+                    <button class="btn-red" onclick="updateDeaths(1)">+ הוסף</button>
+                    <button onclick="updateDeaths(-1)" style="margin-top: 5px; width: 100%;">- הורד</button>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <h3>⏱️ טיימר כללי</h3>
+                    <button class="btn-gold" onclick="resetTimer()">אפס טיימר משחק</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="active-boss-section">
+            <h3>⚔️ ניהול בוס נוכחי</h3>
+            <div id="start-boss-form">
+                <input type="text" id="cb-name-input" placeholder="שם הבוס (למשל: Godskin Noble)">
+                <input type="text" id="cb-img-input" placeholder="לינק לתמונה של הבוס (אופציונלי)">
+                <button class="btn-blue" style="width: 100%;" onclick="startBossFight()">התחל קרב בוס (יפעיל טיימר)</button>
+            </div>
+            
+            <div id="finish-boss-form" style="display: none; text-align: center;">
+                <p>נלחם עכשיו נגד: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
+                <input type="number" id="cb-deaths-input" placeholder="כמה פעמים מתת בבוס הזה?">
+                <button class="btn-gold" style="width: 100%;" onclick="finishBossFight()">🏆 הבוס הובס! (יוסיף לרשימה)</button>
+                <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">בטל קרב נוכחי</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>רשימת בוסים שהובסו (למחיקה)</h3>
+            <div class="boss-list-preview" id="boss-preview"></div>
+        </div>
+    </div>
+
+    <script>
+        // === חבר את הפיירבייס שלך כאן ===
+        const firebaseConfig = {
+            databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentDeaths = 0;
+        let currentBosses = [];
+        let activeBossData = null;
+
+        // האזנה למיתות
+        db.ref('elden/deaths').on('value', snap => {
+            currentDeaths = snap.val() || 0;
+            document.getElementById('current-deaths').innerText = currentDeaths;
+        });
+
+        // האזנה למצב תצוגה (כדי לצבוע את הכפתור הנכון)
+        db.ref('elden/display_mode').on('value', snap => {
+            const mode = snap.val() || 'fighting';
+            document.getElementById('btn-mode-fight').className = mode === 'fighting' ? 'btn-active' : '';
+            document.getElementById('btn-mode-sleep').className = mode === 'sleeping' ? 'btn-active' : '';
+        });
+
+        // האזנה לבוס הפעיל עכשיו
+        db.ref('elden/current_boss').on('value', snap => {
+            activeBossData = snap.val();
+            if(activeBossData && activeBossData.active) {
+                document.getElementById('start-boss-form').style.display = 'none';
+                document.getElementById('finish-boss-form').style.display = 'block';
+                document.getElementById('active-boss-name-label').innerText = activeBossData.name;
+            } else {
+                document.getElementById('start-boss-form').style.display = 'block';
+                document.getElementById('finish-boss-form').style.display = 'none';
+            }
+        });
+
+        // האזנה לרשימת הבוסים
+        db.ref('elden/bosses').on('value', snap => {
+            currentBosses = snap.val() || [];
+            const preview = document.getElementById('boss-preview');
+            preview.innerHTML = '';
+            currentBosses.forEach((boss, index) => {
+                preview.innerHTML += `
+                    <div class="boss-entry">
+                        <span>${boss.name}</span>
+                        <button class="delete-btn" onclick="removeBoss(${index})">X</button>
+                    </div>
+                `;
+            });
+        });
+
+        // --- פעולות בסיס ---
+        function setDisplayMode(mode) {
+            db.ref('elden/display_mode').set(mode);
+        }
+
+        function updateDeaths(amount) {
+            let newVal = currentDeaths + amount;
+            if (newVal < 0) newVal = 0;
+            db.ref('elden/deaths').set(newVal);
+        }
+
+        function resetTimer() {
+            if(confirm("לאפס את הטיימר הראשי של המשחק?")) {
+                db.ref('elden/timer_start').set(Date.now());
+            }
+        }
+
+        // --- פעולות בוס נוכחי ---
+        function startBossFight() {
+            const name = document.getElementById('cb-name-input').value;
+            const img = document.getElementById('cb-img-input').value;
+            if(!name) return alert("הכנס שם בוס");
+
+            db.ref('elden/current_boss').set({
+                active: true,
+                name: name,
+                img: img,
+                startTime: Date.now()
+            });
+
+            document.getElementById('cb-name-input').value = '';
+            document.getElementById('cb-img-input').value = '';
+        }
+
+        function finishBossFight() {
+            const deathsCount = document.getElementById('cb-deaths-input').value || 0;
+            
+            // חישוב הזמן שלקח הבוס
+            const elapsedMs = Date.now() - activeBossData.startTime;
+            let totalSecs = Math.floor(elapsedMs / 1000);
+            let h = Math.floor(totalSecs / 3600);
+            let m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
+            let s = (totalSecs % 60).toString().padStart(2, '0');
+            let timeString = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`; // מציג שעות רק אם עברה שעה
+
+            // הוספה לרשימת הבוסים שהובסו
+            const newBoss = { 
+                name: activeBossData.name, 
+                img: activeBossData.img,
+                time: timeString, 
+                deaths: deathsCount 
+            };
+            const updatedBosses = [...currentBosses, newBoss];
+            db.ref('elden/bosses').set(updatedBosses);
+
+            // איפוס הבוס הנוכחי
+            db.ref('elden/current_boss').set({ active: false });
+            document.getElementById('cb-deaths-input').value = '';
+        }
+
+        function cancelBossFight() {
+            if(confirm("לבטל את הקרב הנוכחי מבלי לשמור אותו?")) {
+                db.ref('elden/current_boss').set({ active: false });
+            }
+        }
+
+        function removeBoss(index) {
+            if(confirm("למחוק בוס זה מההיסטוריה?")) {
+                const updatedBosses = currentBosses.filter((_, i) => i !== index);
+                db.ref('elden/bosses').set(updatedBosses);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -47,7 +47,7 @@
 
     <div class="main-container">
         
-        <!-- עמודה ימנית - חיפוש בוסים חכם -->
+        <!-- עמודה ימנית -->
         <div class="panel-column">
             <h2>🔍 מאגר בוסים (Elden Ring API)</h2>
             <div class="section">
@@ -56,12 +56,9 @@
                     <input type="text" id="api-search" placeholder="למשל: Margit, Radahn...">
                     <button class="btn-blue" onclick="searchBossApi()">חפש</button>
                 </div>
-                <div class="search-results" id="api-results-container">
-                    <!-- התוצאות יופיעו כאן -->
-                </div>
+                <div class="search-results" id="api-results-container"></div>
             </div>
             
-            <!-- הוספת בוס קאסטום ישירות -->
             <div class="section" id="active-boss-section">
                 <h3>⚔️ טעינת בוס לסטרים (קאסטום/אוטומטי)</h3>
                 <div id="start-boss-form">
@@ -72,14 +69,14 @@
                 
                 <div id="finish-boss-form" style="display: none; text-align: center;">
                     <p>נלחם עכשיו נגד: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
-                    <input type="number" id="cb-deaths-input" placeholder="כמה פעמים מתת בבוס הזה?">
+                    <input type="number" id="cb-deaths-input" placeholder="מיתות בבוס הזה (מתעדכן לבד)">
                     <button class="btn-active" style="width: 100%;" onclick="finishBossFight()">🏆 הבוס הובס! (יוסיף לרשימה)</button>
                     <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">בטל קרב נוכחי</button>
                 </div>
             </div>
         </div>
 
-        <!-- עמודה שמאלית - בקרת זרימת סטרים -->
+        <!-- עמודה שמאלית -->
         <div class="panel-column">
             <h2>🎮 בקרת סטרים מרכזית</h2>
 
@@ -92,11 +89,12 @@
             </div>
 
             <div class="section">
-                <h3>💀 מיתות (<span id="current-deaths">0</span>)</h3>
+                <h3>💀 מיתות גלובליות (<span id="current-deaths">0</span>)</h3>
                 <div class="controls">
                     <button class="btn-red" style="flex:1" onclick="updateDeaths(1)">+ הוסף מיתה</button>
                     <button style="flex:1" onclick="updateDeaths(-1)">- הורד מיתה</button>
                 </div>
+                <p style="font-size: 11px; color:#aaa; margin:0; text-align:center;">לחיצה מוסיפה מיתה גם לבוס הפעיל אוטומטית!</p>
             </div>
 
             <div class="section">
@@ -116,7 +114,6 @@
     </div>
 
     <script>
-        // חיבור לפיירבייס - הקישור מעודכן
         const firebaseConfig = { databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -125,9 +122,8 @@
         let currentBosses = [];
         let activeBossData = null;
         let timerData = { isRunning: true, startTime: Date.now(), accumulated: 0 };
-        let editingIndex = -1; // שמירת האינדקס של הבוס שעורכים כרגע
+        let editingIndex = -1; 
 
-        // --- האזנות למסד הנתונים ---
         db.ref('elden/deaths').on('value', snap => {
             currentDeaths = snap.val() || 0;
             document.getElementById('current-deaths').innerText = currentDeaths;
@@ -156,14 +152,14 @@
             if(activeBossData && activeBossData.active) {
                 document.getElementById('start-boss-form').style.display = 'none';
                 document.getElementById('finish-boss-form').style.display = 'block';
-                document.getElementById('active-boss-name-label').innerText = activeBossData.name;
+                document.getElementById('active-boss-name-label').innerHTML = `${activeBossData.name} <span style="color:#ff4a4a;">(💀 ${activeBossData.deaths || 0})</span>`;
+                document.getElementById('cb-deaths-input').value = activeBossData.deaths || 0;
             } else {
                 document.getElementById('start-boss-form').style.display = 'block';
                 document.getElementById('finish-boss-form').style.display = 'none';
             }
         });
 
-        // בניית רשימת הבוסים + מצב עריכה פנימי
         db.ref('elden/bosses').on('value', snap => {
             currentBosses = snap.val() || [];
             renderBossList();
@@ -175,7 +171,6 @@
             
             currentBosses.forEach((boss, index) => {
                 if (editingIndex === index) {
-                    // מצב עריכה
                     preview.innerHTML += `
                         <div class="edit-row">
                             <input type="text" id="edit-name-${index}" value="${boss.name}" style="flex:2">
@@ -186,7 +181,6 @@
                         </div>
                     `;
                 } else {
-                    // מצב רגיל
                     preview.innerHTML += `
                         <div class="boss-entry">
                             <span><strong>${boss.name}</strong> (⏱️ ${boss.time} | 💀 ${boss.deaths})</span>
@@ -200,18 +194,28 @@
             });
         }
 
-        // --- פעולות טיימר וניהול בסיסי ---
         function setDisplayMode(mode) { db.ref('elden/display_mode').set(mode); }
-        function updateDeaths(amount) { db.ref('elden/deaths').set(Math.max(0, currentDeaths + amount)); }
 
+        function updateDeaths(amount) { 
+            db.ref('elden/deaths').set(Math.max(0, currentDeaths + amount)); 
+            if (activeBossData && activeBossData.active) {
+                let currentBossDeaths = activeBossData.deaths || 0;
+                let newBossDeaths = Math.max(0, currentBossDeaths + amount);
+                db.ref('elden/current_boss/deaths').set(newBossDeaths);
+            }
+        }
+
+        // --- התיקון שהוספנו: התראת בטיחות לפני השהייה ---
         function toggleTimer() {
             let now = Date.now();
             if (timerData.isRunning) {
-                // עוצרים: שומרים את הזמן שנצבר
-                let newAcc = timerData.accumulated + (now - timerData.startTime);
-                db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
+                // רק אם הטיימר רץ ואנחנו מנסים להשהות אותו, קופצת אזהרה
+                if(confirm("בטוח שאתה רוצה להשהות (לעצור) את הטיימר הראשי?")) {
+                    let newAcc = timerData.accumulated + (now - timerData.startTime);
+                    db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
+                }
             } else {
-                // ממשיכים: מתחילים לספור מהרגע הזה + מה שנצבר
+                // כשממשיכים מחדש את הטיימר אין אזהרה
                 db.ref('elden/main_timer').set({ isRunning: true, startTime: now, accumulated: timerData.accumulated });
             }
         }
@@ -222,7 +226,6 @@
             }
         }
 
-        // --- מנוע חיפוש מה-API ---
         async function searchBossApi() {
             const query = document.getElementById('api-search').value.trim();
             const container = document.getElementById('api-results-container');
@@ -241,7 +244,6 @@
                 container.innerHTML = '';
                 data.data.forEach(boss => {
                     const img = boss.image || 'https://via.placeholder.com/50/333333/FFFFFF?text=💀';
-                    // שימוש במרכאות בטוחות כדי להעביר את הנתונים לפונקציה
                     container.innerHTML += `
                         <div class="boss-search-card" onclick="selectBossFromApi('${boss.name.replace(/'/g, "\\'")}', '${img}')">
                             <img src="${img}">
@@ -263,13 +265,19 @@
             document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטופס למטה! לחץ על התחל קרב.</span>';
         }
 
-        // --- פעולות בוס פעיל והיסטוריה ---
         function startBossFight() {
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
             if(!name) return alert("הכנס שם בוס או בחר מהרשימה");
 
-            db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: Date.now() });
+            db.ref('elden/current_boss').set({ 
+                active: true, 
+                name: name, 
+                img: img, 
+                startTime: Date.now(),
+                deaths: 0 
+            });
+            
             document.getElementById('cb-name-input').value = '';
             document.getElementById('cb-img-input').value = '';
             document.getElementById('api-search').value = '';
@@ -290,7 +298,6 @@
             
             db.ref('elden/bosses').set(updatedBosses);
             db.ref('elden/current_boss').set({ active: false });
-            document.getElementById('cb-deaths-input').value = '';
         }
 
         function cancelBossFight() {
@@ -304,10 +311,9 @@
             }
         }
 
-        // --- מערכת עריכת בוסים ---
         function startEdit(index) {
             editingIndex = index;
-            renderBossList(); // מרענן את הרשימה כדי להציג את תיבות הטקסט
+            renderBossList(); 
         }
 
         function cancelEdit() {
@@ -325,7 +331,7 @@
             currentBosses[index].deaths = newDeaths;
 
             db.ref('elden/bosses').set(currentBosses);
-            editingIndex = -1; // סגירת מצב העריכה
+            editingIndex = -1; 
         }
     </script>
 </body>

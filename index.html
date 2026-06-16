@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; justify-content: center; }
-        .main-container { display: flex; gap: 20px; max-width: 900px; width: 100%; }
+        .main-container { display: flex; gap: 20px; max-width: 950px; width: 100%; align-items: flex-start;}
         .panel-column { flex: 1; background: #1e1e1e; padding: 25px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         
         h2 { text-align: center; color: #d4af37; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top:0;}
@@ -44,11 +44,10 @@
 
     <div class="main-container">
         
-        <!-- עמודה ימנית -->
         <div class="panel-column">
             <h2>🔍 מאגר בוסים (Elden Ring API)</h2>
             <div class="section">
-                <p style="font-size: 13px; color:#aaa; margin-top:0;">חפש באנגלית, בחר מהרשימה וזה ייטען לטופס (או יחליף תמונה בזמן קרב).</p>
+                <p style="font-size: 13px; color:#aaa; margin-top:0;">חפש באנגלית, בחר מהרשימה וזה ייטען לטפסים למטה.</p>
                 <div style="display: flex; gap: 5px;">
                     <input type="text" id="api-search" placeholder="למשל: Margit, Radahn...">
                     <button class="btn-blue" onclick="searchBossApi()">חפש</button>
@@ -57,7 +56,7 @@
             </div>
             
             <div class="section" id="active-boss-section">
-                <h3>⚔️ טעינת בוס לסטרים</h3>
+                <h3>⚔️ קרב נוכחי בלייב</h3>
                 
                 <div id="start-boss-form">
                     <input type="text" id="cb-name-input" placeholder="שם הבוס">
@@ -78,9 +77,22 @@
                     <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">בטל קרב נוכחי</button>
                 </div>
             </div>
+
+            <div class="section">
+                <h3>⏱️ הוספת בוס מהעבר (ידני)</h3>
+                <p style="font-size: 11px; color:#aaa; margin-top:0;">הוסף בוס שכבר ניצחת בלי לפגוע בקרב הנוכחי.</p>
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="text" id="hist-name" placeholder="שם הבוס" style="flex: 2;">
+                    <input type="text" id="hist-time" placeholder="זמן (למשל 10:25)" style="flex: 1;">
+                    <input type="number" id="hist-deaths" placeholder="מיתות" style="flex: 1;">
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="hist-img" placeholder="לינק לתמונה" style="flex: 3;">
+                    <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">הוסף</button>
+                </div>
+            </div>
         </div>
 
-        <!-- עמודה שמאלית -->
         <div class="panel-column">
             <h2>🎮 בקרת סטרים מרכזית</h2>
 
@@ -140,7 +152,6 @@
             const mode = snap.val() || 'fighting';
             document.getElementById('btn-mode-fight').className = mode === 'fighting' ? 'btn-active' : '';
             document.getElementById('btn-mode-sleep').className = mode === 'sleeping' ? 'btn-active' : '';
-            // כפתור הסיכום משנה צבע אם הוא מופעל כרגע
             document.getElementById('btn-mode-complete').className = mode === 'completed' ? 'btn-active' : 'btn-gold';
         });
 
@@ -212,11 +223,9 @@
         // --- פעולות כלליות ---
         function setDisplayMode(mode) { db.ref('elden/display_mode').set(mode); }
 
-        // מצב חדש: סיום ריצה
         function setCompletedMode() {
             if(confirm("⚠️ אזהרה: בטוח שסיימת את המשחק? הריצה הושלמה? זה יעצור את הטיימר הראשי ויציג מסך סיכום ענק על הסטרים!")) {
                 db.ref('elden/display_mode').set('completed');
-                // אם הטיימר רץ, נעצור אותו אוטומטית שיישאר על הזמן המדויק של הסיום
                 if (timerData.isRunning) {
                     let now = Date.now();
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
@@ -264,7 +273,7 @@
                 const data = await response.json();
                 
                 if(!data.data || data.data.length === 0) {
-                    container.innerHTML = '<span style="color:#ff4a4a;">לא נמצא בוס כזה. אפשר לכתוב את השם ידנית בטופס למטה.</span>';
+                    container.innerHTML = '<span style="color:#ff4a4a;">לא נמצא בוס כזה. אפשר לכתוב את השם ידנית בטפסים למטה.</span>';
                     return;
                 }
                 
@@ -287,19 +296,24 @@
         }
 
         function selectBossFromApi(name, imgUrl) {
+            // טוען אוטומטית לטופס הבוס מהעבר למקרה שצריך
+            document.getElementById('hist-name').value = name;
+            document.getElementById('hist-img').value = imgUrl;
+
             if (activeBossData && activeBossData.active) {
-                if(confirm(`לעדכן את התמונה של הבוס הנוכחי (${activeBossData.name}) לתמונה של ${name}?`)) {
+                if(confirm(`לעדכן את התמונה של הבוס הנוכחי (${activeBossData.name}) לתמונה של ${name}?\n\n(הנתונים הוכנסו גם לטופס 'בוס מהעבר')`)) {
                     db.ref('elden/current_boss/img').set(imgUrl);
-                    document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ תמונת הבוס הפעיל עודכנה בסטרים!</span>';
+                    document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ תמונת הבוס הפעיל עודכנה בסטרים! נטען גם לטופס ההיסטוריה.</span>';
                 }
             } else {
+                // טוען גם לטופס הקרב החדש
                 document.getElementById('cb-name-input').value = name;
                 document.getElementById('cb-img-input').value = imgUrl;
-                document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטופס למטה! לחץ על התחל קרב.</span>';
+                document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטפסים למטה!</span>';
             }
         }
 
-        // --- ניהול בוס נוכחי ---
+        // --- ניהול בוס נוכחי בלייב ---
         function startBossFight() {
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
@@ -348,6 +362,35 @@
             if(confirm("לבטל את הקרב בלי לשמור?")) db.ref('elden/current_boss').set({ active: false });
         }
 
+        // --- הפונקציה החדשה: הוספת בוס היסטורי ---
+        function addHistoricalBoss() {
+            const name = document.getElementById('hist-name').value.trim();
+            const time = document.getElementById('hist-time').value.trim() || "00:00";
+            const deaths = document.getElementById('hist-deaths').value || 0;
+            const img = document.getElementById('hist-img').value.trim();
+
+            if (!name) return alert("חובה להכניס לפחות את שם הבוס!");
+
+            const newBoss = {
+                name: name,
+                img: img,
+                time: time,
+                deaths: deaths
+            };
+
+            const updatedBosses = [...currentBosses, newBoss];
+            db.ref('elden/bosses').set(updatedBosses);
+
+            // ניקוי השדות אחרי ההוספה
+            document.getElementById('hist-name').value = '';
+            document.getElementById('hist-time').value = '';
+            document.getElementById('hist-deaths').value = '';
+            document.getElementById('hist-img').value = '';
+            document.getElementById('api-search').value = '';
+            document.getElementById('api-results-container').innerHTML = '';
+        }
+
+        // --- עריכה ומחיקה ---
         function removeBoss(index) {
             if(confirm("למחוק בוס זה מהסטרים?")) {
                 const updatedBosses = currentBosses.filter((_, i) => i !== index);

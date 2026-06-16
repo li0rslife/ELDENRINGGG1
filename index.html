@@ -25,33 +25,29 @@
 
         input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
         
-        /* אזור חיפוש הבוסים */
         .search-results { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; margin-top: 10px; }
         .boss-search-card { background: #111; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer; border: 1px solid #333; }
         .boss-search-card:hover { border-color: #d4af37; background: #222; }
         .boss-search-card img { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
         
-        /* רשימת הבוסים שהובסו (עם עריכה) */
-        .boss-list-preview { background: #111; padding: 10px; border-radius: 5px; max-height: 250px; overflow-y: auto; font-size: 13px; }
+        .boss-list-preview { background: #111; padding: 10px; border-radius: 5px; max-height: 350px; overflow-y: auto; font-size: 13px; }
         .boss-entry { border-bottom: 1px solid #333; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
         .action-btns { display: flex; gap: 5px; }
         .edit-btn { background: #e2c073; color: #000; padding: 4px 8px; font-size: 12px; }
         .delete-btn { background: #ff4a4a; color: #fff; padding: 4px 8px; font-size: 12px; }
         
-        /* טופס עריכה קטן */
-        .edit-row { display: flex; gap: 5px; background: #222; padding: 5px; border-radius: 4px; }
-        .edit-row input { margin-bottom: 0; padding: 5px; }
+        .edit-row { display: flex; flex-direction: column; gap: 5px; background: #222; padding: 10px; border-radius: 4px; border: 1px solid #d4af37; }
+        .edit-row input { margin-bottom: 0; padding: 5px; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="main-container">
         
-        <!-- עמודה ימנית -->
         <div class="panel-column">
             <h2>🔍 מאגר בוסים (Elden Ring API)</h2>
             <div class="section">
-                <p style="font-size: 13px; color:#aaa; margin-top:0;">חפש באנגלית, בחר מהרשימה וזה ייטען אוטומטית לטופס.</p>
+                <p style="font-size: 13px; color:#aaa; margin-top:0;">חפש באנגלית, בחר מהרשימה וזה ייטען לטופס (או יחליף תמונה בזמן קרב).</p>
                 <div style="display: flex; gap: 5px;">
                     <input type="text" id="api-search" placeholder="למשל: Margit, Radahn...">
                     <button class="btn-blue" onclick="searchBossApi()">חפש</button>
@@ -60,7 +56,8 @@
             </div>
             
             <div class="section" id="active-boss-section">
-                <h3>⚔️ טעינת בוס לסטרים (קאסטום/אוטומטי)</h3>
+                <h3>⚔️ טעינת בוס לסטרים</h3>
+                
                 <div id="start-boss-form">
                     <input type="text" id="cb-name-input" placeholder="שם הבוס">
                     <input type="text" id="cb-img-input" placeholder="לינק לתמונה (אופציונלי)">
@@ -69,6 +66,12 @@
                 
                 <div id="finish-boss-form" style="display: none; text-align: center;">
                     <p>נלחם עכשיו נגד: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
+                    
+                    <div style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 15px;">
+                        <input type="text" id="cb-live-img-input" placeholder="הדבק לינק חדש לתמונה..." style="margin-bottom: 0; font-size: 11px;">
+                        <button class="btn-blue" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;" onclick="updateLiveBossImage()">עדכן תמונה</button>
+                    </div>
+
                     <input type="number" id="cb-deaths-input" placeholder="מיתות בבוס הזה (מתעדכן לבד)">
                     <button class="btn-active" style="width: 100%;" onclick="finishBossFight()">🏆 הבוס הובס! (יוסיף לרשימה)</button>
                     <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">בטל קרב נוכחי</button>
@@ -76,7 +79,6 @@
             </div>
         </div>
 
-        <!-- עמודה שמאלית -->
         <div class="panel-column">
             <h2>🎮 בקרת סטרים מרכזית</h2>
 
@@ -124,6 +126,7 @@
         let timerData = { isRunning: true, startTime: Date.now(), accumulated: 0 };
         let editingIndex = -1; 
 
+        // --- האזנות ---
         db.ref('elden/deaths').on('value', snap => {
             currentDeaths = snap.val() || 0;
             document.getElementById('current-deaths').innerText = currentDeaths;
@@ -165,19 +168,26 @@
             renderBossList();
         });
 
+        // --- רינדור רשימת בוסים ועריכה ---
         function renderBossList() {
             const preview = document.getElementById('boss-preview');
             preview.innerHTML = '';
             
             currentBosses.forEach((boss, index) => {
                 if (editingIndex === index) {
+                    // מצב עריכה שודרג לכלול את התמונה
                     preview.innerHTML += `
                         <div class="edit-row">
-                            <input type="text" id="edit-name-${index}" value="${boss.name}" style="flex:2">
-                            <input type="text" id="edit-time-${index}" value="${boss.time}" style="flex:1" title="זמן">
-                            <input type="number" id="edit-deaths-${index}" value="${boss.deaths}" style="flex:1" title="מיתות">
-                            <button class="btn-active" onclick="saveEdit(${index})">💾</button>
-                            <button class="btn-red" onclick="cancelEdit()">X</button>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" id="edit-name-${index}" value="${boss.name}" style="flex:2" placeholder="שם הבוס">
+                                <input type="text" id="edit-time-${index}" value="${boss.time}" style="flex:1" title="זמן">
+                                <input type="number" id="edit-deaths-${index}" value="${boss.deaths}" style="flex:1" title="מיתות">
+                            </div>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" id="edit-img-${index}" value="${boss.img || ''}" style="flex:3" placeholder="לינק לתמונה של הבוס">
+                                <button class="btn-active" style="flex:1;" onclick="saveEdit(${index})">💾 שמור</button>
+                                <button class="btn-red" onclick="cancelEdit()">X</button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -194,6 +204,7 @@
             });
         }
 
+        // --- פעולות כלליות ---
         function setDisplayMode(mode) { db.ref('elden/display_mode').set(mode); }
 
         function updateDeaths(amount) { 
@@ -205,17 +216,14 @@
             }
         }
 
-        // --- התיקון שהוספנו: התראת בטיחות לפני השהייה ---
         function toggleTimer() {
             let now = Date.now();
             if (timerData.isRunning) {
-                // רק אם הטיימר רץ ואנחנו מנסים להשהות אותו, קופצת אזהרה
                 if(confirm("בטוח שאתה רוצה להשהות (לעצור) את הטיימר הראשי?")) {
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
                     db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
                 }
             } else {
-                // כשממשיכים מחדש את הטיימר אין אזהרה
                 db.ref('elden/main_timer').set({ isRunning: true, startTime: now, accumulated: timerData.accumulated });
             }
         }
@@ -226,6 +234,7 @@
             }
         }
 
+        // --- API וחיפוש ---
         async function searchBossApi() {
             const query = document.getElementById('api-search').value.trim();
             const container = document.getElementById('api-results-container');
@@ -259,12 +268,23 @@
             }
         }
 
+        // --- הבחירה מהחיפוש חכמה יותר עכשיו ---
         function selectBossFromApi(name, imgUrl) {
-            document.getElementById('cb-name-input').value = name;
-            document.getElementById('cb-img-input').value = imgUrl;
-            document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטופס למטה! לחץ על התחל קרב.</span>';
+            // בודק אם יש קרב פעיל כרגע
+            if (activeBossData && activeBossData.active) {
+                if(confirm(`לעדכן את התמונה של הבוס הנוכחי (${activeBossData.name}) לתמונה של ${name}?`)) {
+                    db.ref('elden/current_boss/img').set(imgUrl);
+                    document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ תמונת הבוס הפעיל עודכנה בסטרים!</span>';
+                }
+            } else {
+                // אם אין קרב פעיל, טוען לטופס ההתחלה כמו קודם
+                document.getElementById('cb-name-input').value = name;
+                document.getElementById('cb-img-input').value = imgUrl;
+                document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטופס למטה! לחץ על התחל קרב.</span>';
+            }
         }
 
+        // --- ניהול בוס נוכחי ---
         function startBossFight() {
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
@@ -282,6 +302,16 @@
             document.getElementById('cb-img-input').value = '';
             document.getElementById('api-search').value = '';
             document.getElementById('api-results-container').innerHTML = '';
+        }
+
+        // הפונקציה לעדכון תמונה ידני בזמן קרב
+        function updateLiveBossImage() {
+            const newImgUrl = document.getElementById('cb-live-img-input').value.trim();
+            if(!newImgUrl) return alert("הכנס לינק לתמונה קודם");
+            if (activeBossData && activeBossData.active) {
+                db.ref('elden/current_boss/img').set(newImgUrl);
+                document.getElementById('cb-live-img-input').value = '';
+            }
         }
 
         function finishBossFight() {
@@ -304,6 +334,7 @@
             if(confirm("לבטל את הקרב בלי לשמור?")) db.ref('elden/current_boss').set({ active: false });
         }
 
+        // --- עריכת בוסים שהובסו ---
         function removeBoss(index) {
             if(confirm("למחוק בוס זה מהסטרים?")) {
                 const updatedBosses = currentBosses.filter((_, i) => i !== index);
@@ -325,10 +356,12 @@
             const newName = document.getElementById(`edit-name-${index}`).value;
             const newTime = document.getElementById(`edit-time-${index}`).value;
             const newDeaths = document.getElementById(`edit-deaths-${index}`).value;
+            const newImg = document.getElementById(`edit-img-${index}`).value; // נתון חדש
 
             currentBosses[index].name = newName;
             currentBosses[index].time = newTime;
             currentBosses[index].deaths = newDeaths;
+            if(newImg !== undefined) currentBosses[index].img = newImg;
 
             db.ref('elden/bosses').set(currentBosses);
             editingIndex = -1; 

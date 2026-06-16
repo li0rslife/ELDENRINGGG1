@@ -44,6 +44,7 @@
 
     <div class="main-container">
         
+        <!-- עמודה ימנית -->
         <div class="panel-column">
             <h2>🔍 מאגר בוסים (Elden Ring API)</h2>
             <div class="section">
@@ -79,15 +80,18 @@
             </div>
         </div>
 
+        <!-- עמודה שמאלית -->
         <div class="panel-column">
             <h2>🎮 בקרת סטרים מרכזית</h2>
 
             <div class="section" style="border-color: #d4af37;">
-                <h3 style="text-align: center; color: #d4af37;">מצב תצוגה במסך:</h3>
+                <h3 style="text-align: center; color: #d4af37;">מצב תצוגה במסך (אולפן):</h3>
                 <div class="controls">
                     <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ נלחם עכשיו</button>
                     <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 ישן (פרומפטר)</button>
                 </div>
+                <button id="btn-mode-complete" class="btn-gold" style="width: 100%; margin-top: 5px; font-size: 16px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 סיום משחק (סיכום)</button>
+                <p style="font-size: 11px; color:#ff4a4a; margin: 5px 0 0 0; text-align:center;">לחיצה על סיום משחק תעצור את הטיימר ותקפיץ מסך מיוחד!</p>
             </div>
 
             <div class="section">
@@ -136,6 +140,8 @@
             const mode = snap.val() || 'fighting';
             document.getElementById('btn-mode-fight').className = mode === 'fighting' ? 'btn-active' : '';
             document.getElementById('btn-mode-sleep').className = mode === 'sleeping' ? 'btn-active' : '';
+            // כפתור הסיכום משנה צבע אם הוא מופעל כרגע
+            document.getElementById('btn-mode-complete').className = mode === 'completed' ? 'btn-active' : 'btn-gold';
         });
 
         db.ref('elden/main_timer').on('value', snap => {
@@ -168,14 +174,13 @@
             renderBossList();
         });
 
-        // --- רינדור רשימת בוסים ועריכה ---
+        // --- רינדור רשימת בוסים ---
         function renderBossList() {
             const preview = document.getElementById('boss-preview');
             preview.innerHTML = '';
             
             currentBosses.forEach((boss, index) => {
                 if (editingIndex === index) {
-                    // מצב עריכה שודרג לכלול את התמונה
                     preview.innerHTML += `
                         <div class="edit-row">
                             <div style="display:flex; gap:5px;">
@@ -206,6 +211,19 @@
 
         // --- פעולות כלליות ---
         function setDisplayMode(mode) { db.ref('elden/display_mode').set(mode); }
+
+        // מצב חדש: סיום ריצה
+        function setCompletedMode() {
+            if(confirm("⚠️ אזהרה: בטוח שסיימת את המשחק? הריצה הושלמה? זה יעצור את הטיימר הראשי ויציג מסך סיכום ענק על הסטרים!")) {
+                db.ref('elden/display_mode').set('completed');
+                // אם הטיימר רץ, נעצור אותו אוטומטית שיישאר על הזמן המדויק של הסיום
+                if (timerData.isRunning) {
+                    let now = Date.now();
+                    let newAcc = timerData.accumulated + (now - timerData.startTime);
+                    db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
+                }
+            }
+        }
 
         function updateDeaths(amount) { 
             db.ref('elden/deaths').set(Math.max(0, currentDeaths + amount)); 
@@ -268,16 +286,13 @@
             }
         }
 
-        // --- הבחירה מהחיפוש חכמה יותר עכשיו ---
         function selectBossFromApi(name, imgUrl) {
-            // בודק אם יש קרב פעיל כרגע
             if (activeBossData && activeBossData.active) {
                 if(confirm(`לעדכן את התמונה של הבוס הנוכחי (${activeBossData.name}) לתמונה של ${name}?`)) {
                     db.ref('elden/current_boss/img').set(imgUrl);
                     document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ תמונת הבוס הפעיל עודכנה בסטרים!</span>';
                 }
             } else {
-                // אם אין קרב פעיל, טוען לטופס ההתחלה כמו קודם
                 document.getElementById('cb-name-input').value = name;
                 document.getElementById('cb-img-input').value = imgUrl;
                 document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען בהצלחה לטופס למטה! לחץ על התחל קרב.</span>';
@@ -304,7 +319,6 @@
             document.getElementById('api-results-container').innerHTML = '';
         }
 
-        // הפונקציה לעדכון תמונה ידני בזמן קרב
         function updateLiveBossImage() {
             const newImgUrl = document.getElementById('cb-live-img-input').value.trim();
             if(!newImgUrl) return alert("הכנס לינק לתמונה קודם");
@@ -334,7 +348,6 @@
             if(confirm("לבטל את הקרב בלי לשמור?")) db.ref('elden/current_boss').set({ active: false });
         }
 
-        // --- עריכת בוסים שהובסו ---
         function removeBoss(index) {
             if(confirm("למחוק בוס זה מהסטרים?")) {
                 const updatedBosses = currentBosses.filter((_, i) => i !== index);
@@ -356,7 +369,7 @@
             const newName = document.getElementById(`edit-name-${index}`).value;
             const newTime = document.getElementById(`edit-time-${index}`).value;
             const newDeaths = document.getElementById(`edit-deaths-${index}`).value;
-            const newImg = document.getElementById(`edit-img-${index}`).value; // נתון חדש
+            const newImg = document.getElementById(`edit-img-${index}`).value; 
 
             currentBosses[index].name = newName;
             currentBosses[index].time = newTime;

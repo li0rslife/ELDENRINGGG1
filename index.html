@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>פאנל מודים - אולפן אלדן רינג</title>
+    <title>Mod Panel - Elden Ring Studio</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -40,20 +40,23 @@
         .edit-row input { margin-bottom: 0; padding: 5px; font-size: 12px; }
 
         /* --- עיצוב תפריט ההמבורגר --- */
-        .hamburger-menu { position: absolute; top: 15px; left: 15px; z-index: 100; }
+        .hamburger-menu { position: absolute; top: 15px; right: 15px; z-index: 100; }
         .hamburger-icon { 
-            cursor: pointer; font-size: 18px; color: #888; padding: 5px; 
-            border-radius: 4px; transition: 0.2s; user-select: none;
+            cursor: pointer; font-size: 20px; color: #ccc; padding: 4px 10px; 
+            border-radius: 4px; transition: 0.2s; user-select: none; background: #333; border: 1px solid #555;
         }
-        .hamburger-icon:hover { color: #fff; background: #333; }
+        .hamburger-icon:hover { color: #fff; background: #444; }
         .hamburger-dropdown { 
-            display: none; position: absolute; left: 0; top: 35px; background: #1a1a1a; 
+            display: none; position: absolute; right: 0; top: 40px; background: #1a1a1a; 
             border: 1px solid #444; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.9); 
-            padding: 10px; width: 140px; 
+            padding: 10px; width: 180px; 
         }
         .hamburger-dropdown button { width: 100%; font-size: 12px; padding: 8px; margin-bottom: 5px; }
         .hamburger-dropdown button:last-child { margin-bottom: 0; }
-        .show-menu { display: block; }
+        .show-menu { display: block !important; }
+        
+        /* תת-תפריט סכנה */
+        #danger-sub-menu { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555; }
     </style>
 </head>
 <body>
@@ -61,95 +64,101 @@
     <div class="main-container">
         
         <div class="panel-column">
-            <h2>⚔️ ניהול קרב נוכחי בלייב</h2>
             
-            <div class="section" id="active-boss-section">
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="api-search" placeholder="חפש בוס במאגר (אנגלית)..." style="font-size:12px; margin-bottom:0;">
-                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchBossApi()">חפש</button>
-                </div>
-                <div class="search-results" id="api-results-container" style="max-height: 150px; margin-bottom: 15px;"></div>
-
-                <div id="start-boss-form">
-                    <input type="text" id="cb-name-input" placeholder="שם הבוס">
-                    <input type="text" id="cb-img-input" placeholder="לינק לתמונה (אופציונלי)">
-                    <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">התחל קרב (יפעיל טיימר בוס)</button>
-                </div>
-                
-                <div id="finish-boss-form" style="display: none; text-align: center;">
-                    <p>נלחם עכשיו נגד: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
+            <div class="hamburger-menu">
+                <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
+                <div class="hamburger-dropdown" id="main-menu">
+                    <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
                     
-                    <div style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 15px;">
-                        <input type="text" id="cb-live-img-input" placeholder="הדבק לינק חדש לתמונה..." style="margin-bottom: 0; font-size: 11px;">
-                        <button class="btn-blue" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;" onclick="updateLiveBossImage()">עדכן תמונה</button>
+                    <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
+                    
+                    <div id="danger-sub-menu">
+                        <button class="btn-red" onclick="resetTimer()">🔄 Reset Main Timer</button>
+                        <button class="btn-red" onclick="resetDeaths()">💀 Reset All Deaths</button>
                     </div>
-
-                    <input type="number" id="cb-deaths-input" placeholder="מיתות בבוס הזה (מתעדכן לבד)">
-                    <button class="btn-active" style="width: 100%;" onclick="finishBossFight()">🏆 הבוס הובס! (יוסיף לרשימה)</button>
-                    <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">בטל קרב נוכחי</button>
                 </div>
             </div>
 
-            <div class="section">
-                <h3>⏱️ הוספת בוס מהעבר (ידני / חיפוש)</h3>
-                
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="hist-api-search" placeholder="חפש בוס מהעבר במאגר..." style="font-size:12px; margin-bottom:0;">
-                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">חפש</button>
-                </div>
-                <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
+            <h2>🎮 Main Stream Control</h2>
 
-                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                    <input type="text" id="hist-name" placeholder="שם הבוס" style="flex: 2;">
-                    <input type="text" id="hist-time" placeholder="זמן (למשל 10:25)" style="flex: 1;">
-                    <input type="number" id="hist-deaths" placeholder="מיתות" style="flex: 1;">
+            <div class="section" style="border-color: #d4af37;">
+                <h3 style="text-align: center; color: #d4af37;">Screen Display Mode:</h3>
+                <div class="controls">
+                    <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ Fighting Now</button>
+                    <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 Sleeping</button>
                 </div>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="hist-img" placeholder="לינק לתמונה" style="flex: 3;">
-                    <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">הוסף</button>
+                <p style="font-size: 11px; color:#aaa; margin: 5px 0 0 0; text-align:center;">(Run Complete is in the ☰ Menu)</p>
+            </div>
+
+            <div class="section">
+                <h3>💀 Global Deaths (<span id="current-deaths">0</span>)</h3>
+                <div class="controls">
+                    <button class="btn-red death-btn" style="flex:1" onclick="updateDeaths(1)">+ Add Death</button>
+                    <button class="death-btn" style="flex:1" onclick="updateDeaths(-1)">- Remove Death</button>
                 </div>
+                <p style="font-size: 11px; color:#aaa; margin:0; text-align:center;">Clicking automatically adds a death to the active boss too!</p>
+            </div>
+
+            <div class="section">
+                <h3>⏱️ Main Timer Control</h3>
+                <button id="btn-timer-toggle" class="btn-gold" style="width: 100%;" onclick="toggleTimer()">⏸️ Pause Timer</button>
+                <p style="font-size: 10px; color:#666; margin: 5px 0 0 0; text-align:center;">(Reset timer is in the ☰ Menu)</p>
+            </div>
+
+            <div class="section">
+                <h3>Defeated Bosses List</h3>
+                <div class="boss-list-preview" id="boss-preview"></div>
             </div>
         </div>
 
         <div class="panel-column">
+            <h2>⚔️ Current Live Fight</h2>
             
-            <div class="hamburger-menu">
-                <div class="hamburger-icon" onclick="toggleMenu()" title="אפשרויות מסוכנות">☰</div>
-                <div class="hamburger-dropdown" id="danger-menu">
-                    <button class="btn-red" onclick="resetTimer()">🔄 איפוס טיימר ראשי</button>
-                    <button class="btn-red" onclick="resetDeaths()">💀 איפוס כל המיתות</button>
+            <div class="section" id="active-boss-section">
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <input type="text" id="api-search" placeholder="Search boss in database..." style="font-size:12px; margin-bottom:0;">
+                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchBossApi()">Search</button>
+                </div>
+                <div class="search-results" id="api-results-container" style="max-height: 150px; margin-bottom: 15px;"></div>
+
+                <div id="start-boss-form">
+                    <input type="text" id="cb-name-input" placeholder="Boss Name">
+                    <input type="text" id="cb-img-input" placeholder="Image Link (Optional)">
+                    <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">Start Fight (Starts Boss Timer)</button>
+                </div>
+                
+                <div id="finish-boss-form" style="display: none; text-align: center;">
+                    <p>Now fighting: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
+                    
+                    <div style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 15px;">
+                        <input type="text" id="cb-live-img-input" placeholder="Paste new image link..." style="margin-bottom: 0; font-size: 11px;">
+                        <button class="btn-blue" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;" onclick="updateLiveBossImage()">Update Image</button>
+                    </div>
+
+                    <input type="number" id="cb-deaths-input" placeholder="Deaths on this boss (Auto updates)">
+                    <button class="btn-active" style="width: 100%;" onclick="finishBossFight()">🏆 Boss Defeated! (Add to list)</button>
+                    <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">Cancel current fight</button>
                 </div>
             </div>
 
-            <h2>🎮 בקרת סטרים מרכזית</h2>
-
-            <div class="section" style="border-color: #d4af37;">
-                <h3 style="text-align: center; color: #d4af37;">מצב תצוגה במסך (אולפן):</h3>
-                <div class="controls">
-                    <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ נלחם עכשיו</button>
-                    <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 ישן (פרומפטר)</button>
+            <div class="section">
+                <h3>⏱️ Add Past Boss (Manual / Search)</h3>
+                
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <input type="text" id="hist-api-search" placeholder="Search past boss..." style="font-size:12px; margin-bottom:0;">
+                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">Search</button>
                 </div>
-                <button id="btn-mode-complete" class="btn-gold" style="width: 100%; margin-top: 5px; font-size: 16px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 סיום משחק (סיכום)</button>
-            </div>
+                <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
 
-            <div class="section">
-                <h3>💀 מיתות גלובליות (<span id="current-deaths">0</span>)</h3>
-                <div class="controls">
-                    <button class="btn-red" style="flex:1" onclick="updateDeaths(1)">+ הוסף מיתה</button>
-                    <button style="flex:1" onclick="updateDeaths(-1)">- הורד מיתה</button>
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
+                    <input type="text" id="hist-time" placeholder="Time (e.g. 10:25)" style="flex: 1;">
+                    <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
                 </div>
-                <p style="font-size: 11px; color:#aaa; margin:0; text-align:center;">לחיצה מוסיפה מיתה גם לבוס הפעיל אוטומטית!</p>
-            </div>
-
-            <div class="section">
-                <h3>⏱️ שליטה בטיימר הראשי</h3>
-                <button id="btn-timer-toggle" class="btn-gold" style="width: 100%;" onclick="toggleTimer()">⏸️ השהה טיימר</button>
-                <p style="font-size: 10px; color:#666; margin: 5px 0 0 0; text-align:center;">(איפוס הטיימר עבר לתפריט ה-☰ למעלה)</p>
-            </div>
-
-            <div class="section">
-                <h3>רשימת בוסים שהובסו</h3>
-                <div class="boss-list-preview" id="boss-preview"></div>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="hist-img" placeholder="Image Link" style="flex: 3;">
+                    <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">Add</button>
+                </div>
             </div>
         </div>
 
@@ -166,38 +175,46 @@
         let timerData = { isRunning: true, startTime: Date.now(), accumulated: 0 };
         let editingIndex = -1; 
 
-        // --- מנגנון תפריט המבורגר (סגירה אוטומטית כשלוחצים בחוץ) ---
-        function toggleMenu() {
-            document.getElementById("danger-menu").classList.toggle("show-menu");
+        // --- Hamburger Menu & Nested Danger Menu ---
+        function toggleMenu(event) {
+            event.stopPropagation();
+            document.getElementById("main-menu").classList.toggle("show-menu");
+            // סגירת תפריט הסכנה כשסוגרים/פותחים את הראשי
+            document.getElementById("danger-sub-menu").style.display = "none";
         }
+        
+        function toggleDangerMenu(event) {
+            event.stopPropagation(); // מונע מהקליק לסגור את התפריט הראשי
+            var subMenu = document.getElementById("danger-sub-menu");
+            subMenu.style.display = (subMenu.style.display === "block") ? "none" : "block";
+        }
+
         window.onclick = function(event) {
-            if (!event.target.matches('.hamburger-icon')) {
-                var dropdowns = document.getElementsByClassName("hamburger-dropdown");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show-menu')) {
-                        openDropdown.classList.remove('show-menu');
-                    }
+            var dropdown = document.getElementById("main-menu");
+            if (!event.target.matches('.hamburger-icon') && !event.target.closest('.hamburger-dropdown')) {
+                if (dropdown.classList.contains('show-menu')) {
+                    dropdown.classList.remove('show-menu');
+                    document.getElementById("danger-sub-menu").style.display = "none";
                 }
             }
         }
 
-        // --- מנגנון נעילת כפתורים (Cooldown) ---
-        function lockButtons() {
-            const allButtons = document.querySelectorAll('button');
-            allButtons.forEach(btn => {
+        // --- Cooldown (Deaths Only) ---
+        function lockDeathButtons() {
+            const deathBtns = document.querySelectorAll('.death-btn');
+            deathBtns.forEach(btn => {
                 btn.style.opacity = '0.5';
                 btn.style.pointerEvents = 'none';
             });
             setTimeout(() => {
-                allButtons.forEach(btn => {
+                deathBtns.forEach(btn => {
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
                 });
             }, 1000);
         }
 
-        // --- האזנות ---
+        // --- Listeners ---
         db.ref('elden/deaths').on('value', snap => {
             currentDeaths = snap.val() || 0;
             document.getElementById('current-deaths').innerText = currentDeaths;
@@ -207,17 +224,21 @@
             const mode = snap.val() || 'fighting';
             document.getElementById('btn-mode-fight').className = mode === 'fighting' ? 'btn-active' : '';
             document.getElementById('btn-mode-sleep').className = mode === 'sleeping' ? 'btn-active' : '';
-            document.getElementById('btn-mode-complete').className = mode === 'completed' ? 'btn-active' : 'btn-gold';
+            // עדכון צבע כפתור ה-Run Complete שבתוך תפריט ההמבורגר
+            const btnComplete = document.getElementById('btn-mode-complete');
+            if (btnComplete) {
+                btnComplete.className = mode === 'completed' ? 'btn-active' : 'btn-gold';
+            }
         });
 
         db.ref('elden/main_timer').on('value', snap => {
             if (snap.val()) timerData = snap.val();
             const btn = document.getElementById('btn-timer-toggle');
             if (timerData.isRunning) {
-                btn.innerText = "⏸️ השהה טיימר";
+                btn.innerText = "⏸️ Pause Timer";
                 btn.className = "btn-gold";
             } else {
-                btn.innerText = "▶️ המשך טיימר";
+                btn.innerText = "▶️ Resume Timer";
                 btn.className = "btn-active";
             }
         });
@@ -249,13 +270,13 @@
                     preview.innerHTML += `
                         <div class="edit-row">
                             <div style="display:flex; gap:5px;">
-                                <input type="text" id="edit-name-${index}" value="${boss.name}" style="flex:2" placeholder="שם הבוס">
-                                <input type="text" id="edit-time-${index}" value="${boss.time}" style="flex:1" title="זמן">
-                                <input type="number" id="edit-deaths-${index}" value="${boss.deaths}" style="flex:1" title="מיתות">
+                                <input type="text" id="edit-name-${index}" value="${boss.name}" style="flex:2" placeholder="Boss Name">
+                                <input type="text" id="edit-time-${index}" value="${boss.time}" style="flex:1" title="Time">
+                                <input type="number" id="edit-deaths-${index}" value="${boss.deaths}" style="flex:1" title="Deaths">
                             </div>
                             <div style="display:flex; gap:5px;">
-                                <input type="text" id="edit-img-${index}" value="${boss.img || ''}" style="flex:3" placeholder="לינק לתמונה של הבוס">
-                                <button class="btn-active" style="flex:1;" onclick="saveEdit(${index})">💾</button>
+                                <input type="text" id="edit-img-${index}" value="${boss.img || ''}" style="flex:3" placeholder="Image Link">
+                                <button class="btn-active" style="flex:1;" onclick="saveEdit(${index})">💾 Save</button>
                                 <button class="btn-red" onclick="cancelEdit()">X</button>
                             </div>
                         </div>
@@ -275,13 +296,14 @@
         }
 
         function setDisplayMode(mode) { 
-            lockButtons();
             db.ref('elden/display_mode').set(mode); 
         }
 
         function setCompletedMode() {
-            if(confirm("⚠️ אזהרה: בטוח שסיימת את המשחק? הריצה הושלמה? זה יעצור את הטיימר הראשי ויציג מסך סיכום ענק על הסטרים!")) {
-                lockButtons();
+            // סוגר את תפריט ההמבורגר מיד
+            document.getElementById("main-menu").classList.remove('show-menu');
+            
+            if(confirm("⚠️ WARNING: Are you sure the run is complete? This will stop the main timer and show a giant summary screen on stream!")) {
                 db.ref('elden/display_mode').set('completed');
                 if (timerData.isRunning) {
                     let now = Date.now();
@@ -292,7 +314,7 @@
         }
 
         function updateDeaths(amount) { 
-            lockButtons();
+            lockDeathButtons();
             db.ref('elden/deaths').transaction((currentVal) => {
                 return Math.max(0, (currentVal || 0) + amount);
             });
@@ -303,51 +325,48 @@
             }
         }
 
-        // --- פונקציות האיפוס מההמבורגר ---
+        // --- Danger Menu Resets ---
         function resetTimer() {
-            if(confirm("⚠️ אזהרה חמורה: בטוח שאתה רוצה לאפס לגמרי את הטיימר הראשי ל-00:00:00? פעולה זו לא ניתנת לביטול!")) {
-                lockButtons();
+            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
                 db.ref('elden/main_timer').set({ isRunning: true, startTime: Date.now(), accumulated: 0 });
-                document.getElementById("danger-menu").classList.remove("show-menu");
+                document.getElementById("main-menu").classList.remove("show-menu");
+                document.getElementById("danger-sub-menu").style.display = "none";
             }
         }
 
         function resetDeaths() {
-            if(confirm("⚠️ אזהרה חמורה: בטוח שאתה רוצה לאפס את כמות המיתות הכללית ל-0? פעולה זו לא ניתנת לביטול!")) {
-                lockButtons();
+            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!")) {
                 db.ref('elden/deaths').set(0);
-                document.getElementById("danger-menu").classList.remove("show-menu");
+                document.getElementById("main-menu").classList.remove("show-menu");
+                document.getElementById("danger-sub-menu").style.display = "none";
             }
         }
 
         function toggleTimer() {
             let now = Date.now();
             if (timerData.isRunning) {
-                if(confirm("בטוח שאתה רוצה להשהות (לעצור) את הטיימר הראשי?")) {
-                    lockButtons();
+                if(confirm("Are you sure you want to pause the main timer?")) {
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
                     db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
                 }
             } else {
-                lockButtons();
                 db.ref('elden/main_timer').set({ isRunning: true, startTime: now, accumulated: timerData.accumulated });
             }
         }
 
-        // --- חיפוש בוס ללייב ---
+        // --- Search Boss (Live Fight) ---
         async function searchBossApi() {
-            lockButtons();
             const query = document.getElementById('api-search').value.trim();
             const container = document.getElementById('api-results-container');
             if(!query) return;
             
-            container.innerHTML = '<span style="color:#aaa;">מחפש נתונים ברשת...</span>';
+            container.innerHTML = '<span style="color:#aaa;">Searching database...</span>';
             try {
                 const response = await fetch(`https://eldenring.fanapis.com/api/bosses?name=${query}`);
                 const data = await response.json();
                 
                 if(!data.data || data.data.length === 0) {
-                    container.innerHTML = '<span style="color:#ff4a4a;">לא נמצא בוס כזה.</span>';
+                    container.innerHTML = '<span style="color:#ff4a4a;">Boss not found.</span>';
                     return;
                 }
                 container.innerHTML = '';
@@ -363,37 +382,35 @@
                         </div>
                     `;
                 });
-            } catch(e) { container.innerHTML = '<span style="color:#ff4a4a;">שגיאה בחיבור למאגר.</span>'; }
+            } catch(e) { container.innerHTML = '<span style="color:#ff4a4a;">Connection error.</span>'; }
         }
 
         function selectBossFromApi(name, imgUrl) {
             if (activeBossData && activeBossData.active) {
-                if(confirm(`לעדכן את התמונה של הבוס הנוכחי (${activeBossData.name}) לתמונה של ${name}?`)) {
-                    lockButtons();
+                if(confirm(`Update the image of the current boss (${activeBossData.name}) to the image of ${name}?`)) {
                     db.ref('elden/current_boss/img').set(imgUrl);
-                    document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ תמונה עודכנה בסטרים!</span>';
+                    document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ Image updated on stream!</span>';
                 }
             } else {
                 document.getElementById('cb-name-input').value = name;
                 document.getElementById('cb-img-input').value = imgUrl;
-                document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען לטופס הקרב.</span>';
+                document.getElementById('api-results-container').innerHTML = '<span style="color:#28a745;">✅ Loaded into fight form.</span>';
             }
         }
 
-        // --- חיפוש ייעודי לבוסים מהעבר ---
+        // --- Search Boss (Past Bosses) ---
         async function searchHistBossApi() {
-            lockButtons();
             const query = document.getElementById('hist-api-search').value.trim();
             const container = document.getElementById('hist-api-results-container');
             if(!query) return;
             
-            container.innerHTML = '<span style="color:#aaa;">מחפש נתונים ברשת...</span>';
+            container.innerHTML = '<span style="color:#aaa;">Searching database...</span>';
             try {
                 const response = await fetch(`https://eldenring.fanapis.com/api/bosses?name=${query}`);
                 const data = await response.json();
                 
                 if(!data.data || data.data.length === 0) {
-                    container.innerHTML = '<span style="color:#ff4a4a;">לא נמצא בוס כזה. אפשר לכתוב ידנית.</span>';
+                    container.innerHTML = '<span style="color:#ff4a4a;">Boss not found. You can type it manually.</span>';
                     return;
                 }
                 container.innerHTML = '';
@@ -409,22 +426,21 @@
                         </div>
                     `;
                 });
-            } catch(e) { container.innerHTML = '<span style="color:#ff4a4a;">שגיאה בחיבור למאגר.</span>'; }
+            } catch(e) { container.innerHTML = '<span style="color:#ff4a4a;">Connection error.</span>'; }
         }
 
         function selectHistBossFromApi(name, imgUrl) {
             document.getElementById('hist-name').value = name;
             document.getElementById('hist-img').value = imgUrl;
-            document.getElementById('hist-api-results-container').innerHTML = '<span style="color:#28a745;">✅ נטען לטופס 'בוס מהעבר'. הוסף מיתות/זמן ולחץ הוסף.</span>';
+            document.getElementById('hist-api-results-container').innerHTML = '<span style="color:#28a745;">✅ Loaded into past boss form. Add time/deaths and click Add.</span>';
         }
 
-        // --- פעולות קרב ---
+        // --- Fight Actions ---
         function startBossFight() {
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
-            if(!name) return alert("הכנס שם בוס או בחר מהרשימה");
+            if(!name) return alert("Enter boss name or select from list");
 
-            lockButtons();
             db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: Date.now(), deaths: 0 });
             
             document.getElementById('cb-name-input').value = '';
@@ -435,16 +451,14 @@
 
         function updateLiveBossImage() {
             const newImgUrl = document.getElementById('cb-live-img-input').value.trim();
-            if(!newImgUrl) return alert("הכנס לינק לתמונה קודם");
+            if(!newImgUrl) return alert("Enter an image link first");
             if (activeBossData && activeBossData.active) {
-                lockButtons();
                 db.ref('elden/current_boss/img').set(newImgUrl);
                 document.getElementById('cb-live-img-input').value = '';
             }
         }
 
         function finishBossFight() {
-            lockButtons();
             const deathsCount = document.getElementById('cb-deaths-input').value || 0;
             const elapsedMs = Date.now() - activeBossData.startTime;
             let totalSecs = Math.floor(elapsedMs / 1000);
@@ -465,8 +479,7 @@
         }
 
         function cancelBossFight() {
-            if(confirm("לבטל את הקרב בלי לשמור?")) {
-                lockButtons();
+            if(confirm("Cancel current fight without saving?")) {
                 db.ref('elden/current_boss').set({ active: false });
             }
         }
@@ -477,9 +490,8 @@
             const deaths = document.getElementById('hist-deaths').value || 0;
             const img = document.getElementById('hist-img').value.trim();
 
-            if (!name) return alert("חובה להכניס לפחות את שם הבוס!");
+            if (!name) return alert("You must enter at least the boss name!");
 
-            lockButtons();
             const newBoss = { name: name, img: img, time: time, deaths: deaths };
 
             db.ref('elden/bosses').transaction((currentBossList) => {
@@ -497,8 +509,7 @@
         }
 
         function removeBoss(index) {
-            if(confirm("למחוק בוס זה מהסטרים?")) {
-                lockButtons();
+            if(confirm("Delete this boss from the stream?")) {
                 const updatedBosses = currentBosses.filter((_, i) => i !== index);
                 db.ref('elden/bosses').set(updatedBosses);
             }
@@ -508,7 +519,6 @@
         function cancelEdit() { editingIndex = -1; renderBossList(); }
 
         function saveEdit(index) {
-            lockButtons();
             const newName = document.getElementById(`edit-name-${index}`).value;
             const newTime = document.getElementById(`edit-time-${index}`).value;
             const newDeaths = document.getElementById(`edit-deaths-${index}`).value;

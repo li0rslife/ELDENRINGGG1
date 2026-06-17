@@ -6,7 +6,24 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; justify-content: center; margin: 0; }
+        
+        /* --- מסך התחברות אולפן --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #111 0%, #000 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .login-box {
+            background: #1e1e1e; padding: 40px; border-radius: 12px; border: 1px solid #d4af37;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; width: 300px;
+        }
+        .login-title { color: #d4af37; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
+        
+        /* תוכן האפליקציה (מוסתר בהתחלה) */
+        #app-content { display: none; width: 100%; justify-content: center; }
+
         .main-container { display: flex; gap: 20px; max-width: 1300px; width: 100%; align-items: flex-start; flex-wrap: wrap; }
         .panel-column { flex: 1; background: #1e1e1e; padding: 25px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative; min-width: 300px; }
         
@@ -72,163 +89,173 @@
 </head>
 <body dir="rtl">
 
-    <div class="main-container">
-        
-        <div class="panel-column">
-            
-            <div class="hamburger-menu">
-                <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
-                <div class="hamburger-dropdown" id="main-menu" dir="ltr">
-                    <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
-                    
-                    <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
-                    <div id="danger-sub-menu">
-                        <button class="btn-red" onclick="cancelBossFight()">❌ Cancel Current Fight</button>
-                        <button class="btn-red" onclick="resetTimer()">🔄 Reset Main Timer</button>
-                        <button class="btn-red" onclick="resetDeaths()">💀 Reset All Deaths</button>
-                        <button class="btn-red" onclick="clearChat()">💬 Clear Chat</button>
-                    </div>
-                </div>
-            </div>
-
-            <h2>🎮 Main Stream Control</h2>
-
-            <div class="section" style="border-color: #d4af37;" dir="ltr">
-                <h3 style="text-align: center; color: #d4af37;">Screen Display Mode:</h3>
-                <div class="controls">
-                    <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ Fighting Now</button>
-                    <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 Sleeping</button>
-                </div>
-                <p style="font-size: 11px; color:#aaa; margin: 5px 0 0 0; text-align:center;">(Run Complete is in the ☰ Menu)</p>
-            </div>
-
-            <div class="section" dir="ltr">
-                <h3>💀 Global Deaths (<span id="current-deaths">0</span>)</h3>
-                <div class="controls">
-                    <button class="btn-red death-btn" style="flex:1" onclick="updateDeaths(1)">+ Add Death</button>
-                    <button class="death-btn" style="flex:1" onclick="updateDeaths(-1)">- Remove Death</button>
-                </div>
-                <p style="font-size: 11px; color:#aaa; margin:0; text-align:center;">Clicking automatically adds a death to the active boss too!</p>
-            </div>
-
-            <div class="section" dir="ltr">
-                <h3>⏱️ Main Timer Control</h3>
-                <button id="btn-timer-toggle" class="btn-gold" style="width: 100%;" onclick="toggleTimer()">⏸️ Pause Timer</button>
-                <p style="font-size: 10px; color:#666; margin: 5px 0 0 0; text-align:center;">(Reset timer is in the ☰ Menu)</p>
-            </div>
-
-            <div class="section" dir="ltr">
-                <h3>Defeated Bosses List</h3>
-                <div class="boss-list-preview" id="boss-preview"></div>
-            </div>
+    <div id="login-screen">
+        <div class="login-box" dir="ltr">
+            <h2 class="login-title">Studio Access</h2>
+            <input type="password" id="studio-password" placeholder="Enter Team Password" style="text-align: center; font-size: 16px; margin-bottom: 15px;" onkeypress="if(event.key==='Enter') checkPassword()">
+            <button class="btn-gold" style="width: 100%; font-size: 16px;" onclick="checkPassword()">Login</button>
+            <p id="login-error" style="color: #ff4a4a; display: none; margin-top: 15px; font-size: 13px; font-weight: bold;">❌ Incorrect Password!</p>
         </div>
+    </div>
 
-        <div class="panel-column" dir="ltr">
-            <h2>⚔️ Current Live Fight</h2>
-            
-            <div class="section" id="active-boss-section">
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="api-search" placeholder="Search boss in database..." style="font-size:12px; margin-bottom:0;">
-                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchBossApi()">Search</button>
-                </div>
-                <div class="search-results" id="api-results-container" style="max-height: 150px; margin-bottom: 15px;"></div>
+    <div id="app-content">
 
-                <div id="start-boss-form">
-                    <input type="text" id="cb-name-input" placeholder="Boss Name">
-                    <input type="text" id="cb-img-input" placeholder="Image Link (Optional)">
-                    <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">Start Fight (Starts Boss Timer)</button>
-                </div>
+        <div class="main-container">
+            <div class="panel-column">
                 
-                <div id="finish-boss-form" style="display: none; text-align: center;">
-                    <p>Now fighting: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
-                    
-                    <div style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 15px;">
-                        <input type="text" id="cb-live-img-input" placeholder="Paste new image link..." style="margin-bottom: 0; font-size: 11px;">
-                        <button class="btn-blue" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;" onclick="updateLiveBossImage()">Update Image</button>
-                    </div>
-
-                    <div id="fight-step-1">
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn-active" style="flex: 2;" onclick="initiateBossDefeat()">🏆 Boss Defeated!</button>
-                            <button class="btn-gold" style="flex: 1;" onclick="standbyBossFight()">⏸️ Put on Standby</button>
-                        </div>
-                    </div>
-
-                    <div id="fight-step-2" style="display: none; flex-direction: column; gap: 5px; background: rgba(200, 50, 50, 0.1); padding: 10px; border-radius: 6px; border: 1px solid #cc3333;">
-                        <p style="color: #ff4a4a; font-size: 12px; margin: 0 0 5px 0; font-weight: bold;">⚠️ Pending Defeat Confirmation</p>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn-active" style="flex: 2; background: #218838; border: 1px solid #fff;" onclick="confirmBossDefeat()">✅ Confirm Defeat</button>
-                            <button class="btn-blue" style="flex: 1;" onclick="resumeBossFight()">🔙 Resume Fight</button>
+                <div class="hamburger-menu">
+                    <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
+                    <div class="hamburger-dropdown" id="main-menu" dir="ltr">
+                        <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
+                        
+                        <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
+                        <div id="danger-sub-menu">
+                            <button class="btn-red" onclick="cancelBossFight()">❌ Cancel Current Fight</button>
+                            <button class="btn-red" onclick="resetTimer()">🔄 Reset Main Timer</button>
+                            <button class="btn-red" onclick="resetDeaths()">💀 Reset All Deaths</button>
+                            <button class="btn-red" onclick="clearChat()">💬 Clear Chat</button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="section">
-                <h3 class="collapsible-header" onclick="toggleSection('standby-section-content', this)">⏸️ Bosses on Standby <span class="arrow">▼</span></h3>
-                <div id="standby-section-content" class="collapsible-content">
-                    <div id="standby-bosses-container"></div>
+                <h2>🎮 Main Stream Control</h2>
+
+                <div class="section" style="border-color: #d4af37;" dir="ltr">
+                    <h3 style="text-align: center; color: #d4af37;">Screen Display Mode:</h3>
+                    <div class="controls">
+                        <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ Fighting Now</button>
+                        <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 Sleeping</button>
+                    </div>
+                    <p style="font-size: 11px; color:#aaa; margin: 5px 0 0 0; text-align:center;">(Run Complete is in the ☰ Menu)</p>
+                </div>
+
+                <div class="section" dir="ltr">
+                    <h3>💀 Global Deaths (<span id="current-deaths">0</span>)</h3>
+                    <div class="controls">
+                        <button class="btn-red death-btn" style="flex:1" onclick="updateDeaths(1)">+ Add Death</button>
+                        <button class="death-btn" style="flex:1" onclick="updateDeaths(-1)">- Remove Death</button>
+                    </div>
+                    <p style="font-size: 11px; color:#aaa; margin:0; text-align:center;">Clicking automatically adds a death to the active boss too!</p>
+                </div>
+
+                <div class="section" dir="ltr">
+                    <h3>⏱️ Main Timer Control</h3>
+                    <button id="btn-timer-toggle" class="btn-gold" style="width: 100%;" onclick="toggleTimer()">⏸️ Pause Timer</button>
+                    <p style="font-size: 10px; color:#666; margin: 5px 0 0 0; text-align:center;">(Reset timer is in the ☰ Menu)</p>
+                </div>
+
+                <div class="section" dir="ltr">
+                    <h3>Defeated Bosses List</h3>
+                    <div class="boss-list-preview" id="boss-preview"></div>
                 </div>
             </div>
 
-            <div class="section">
-                <h3 class="collapsible-header" onclick="toggleSection('past-boss-section-content', this)">⏱️ Add Past Boss <span class="arrow">▼</span></h3>
-                <div id="past-boss-section-content" class="collapsible-content">
+            <div class="panel-column" dir="ltr">
+                <h2>⚔️ Current Live Fight</h2>
+                
+                <div class="section" id="active-boss-section">
                     <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                        <input type="text" id="hist-api-search" placeholder="Search past boss..." style="font-size:12px; margin-bottom:0;">
-                        <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">Search</button>
+                        <input type="text" id="api-search" placeholder="Search boss in database..." style="font-size:12px; margin-bottom:0;">
+                        <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchBossApi()">Search</button>
                     </div>
-                    <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
+                    <div class="search-results" id="api-results-container" style="max-height: 150px; margin-bottom: 15px;"></div>
 
-                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                        <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
-                        <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;" title="Format must be HH:MM:SS">
-                        <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
+                    <div id="start-boss-form">
+                        <input type="text" id="cb-name-input" placeholder="Boss Name">
+                        <input type="text" id="cb-img-input" placeholder="Image Link (Optional)">
+                        <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">Start Fight (Starts Boss Timer)</button>
                     </div>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="hist-img" placeholder="Image Link" style="flex: 3;">
-                        <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">Add</button>
+                    
+                    <div id="finish-boss-form" style="display: none; text-align: center;">
+                        <p>Now fighting: <strong id="active-boss-name-label" style="color: #d4af37;">---</strong></p>
+                        
+                        <div style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 15px;">
+                            <input type="text" id="cb-live-img-input" placeholder="Paste new image link..." style="margin-bottom: 0; font-size: 11px;">
+                            <button class="btn-blue" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;" onclick="updateLiveBossImage()">Update Image</button>
+                        </div>
+
+                        <div id="fight-step-1">
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn-active" style="flex: 2;" onclick="initiateBossDefeat()">🏆 Boss Defeated!</button>
+                                <button class="btn-gold" style="flex: 1;" onclick="standbyBossFight()">⏸️ Put on Standby</button>
+                            </div>
+                        </div>
+
+                        <div id="fight-step-2" style="display: none; flex-direction: column; gap: 5px; background: rgba(200, 50, 50, 0.1); padding: 10px; border-radius: 6px; border: 1px solid #cc3333;">
+                            <p style="color: #ff4a4a; font-size: 12px; margin: 0 0 5px 0; font-weight: bold;">⚠️ Pending Defeat Confirmation</p>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn-active" style="flex: 2; background: #218838; border: 1px solid #fff;" onclick="confirmBossDefeat()">✅ Confirm Defeat</button>
+                                <button class="btn-blue" style="flex: 1;" onclick="resumeBossFight()">🔙 Resume Fight</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="collapsible-header" onclick="toggleSection('standby-section-content', this)">⏸️ Bosses on Standby <span class="arrow">▼</span></h3>
+                    <div id="standby-section-content" class="collapsible-content">
+                        <div id="standby-bosses-container"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="collapsible-header" onclick="toggleSection('past-boss-section-content', this)">⏱️ Add Past Boss <span class="arrow">▼</span></h3>
+                    <div id="past-boss-section-content" class="collapsible-content">
+                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <input type="text" id="hist-api-search" placeholder="Search past boss..." style="font-size:12px; margin-bottom:0;">
+                            <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">Search</button>
+                        </div>
+                        <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
+
+                        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                            <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
+                            <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;" title="Format must be HH:MM:SS">
+                            <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="hist-img" placeholder="Image Link" style="flex: 3;">
+                            <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">Add</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="panel-column" style="display: flex; flex-direction: column;" dir="ltr">
-            <h2>💬 Mods Live Chat</h2>
-            
-            <div class="section" style="flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100%;">
+            <div class="panel-column" style="display: flex; flex-direction: column;" dir="ltr">
+                <h2>💬 Mods Live Chat</h2>
                 
-                <div id="chat-messages" style="flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; margin-bottom: 10px; height: 500px;">
-                    </div>
-                
-                <div id="reply-preview-container" style="display: none; background: #222; border-left: 3px solid #007bff; padding: 8px; margin-bottom: 8px; border-radius: 4px; position: relative;">
-                    <div id="reply-preview-text" style="font-size: 11px; color: #aaa; margin-right: 20px;"></div>
-                    <span onclick="cancelReply()" style="position: absolute; right: 8px; top: 8px; cursor: pointer; color: #ff4a4a; font-size: 12px;">✖</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="chat-name" placeholder="Your Nickname..." style="margin: 0; font-size: 13px; flex: 1;">
-                        <button id="btn-lock-name" class="btn-gold" style="font-size: 11px; padding: 0 10px;" onclick="toggleNameLock()">🔒 Lock</button>
+                <div class="section" style="flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100%;">
+                    
+                    <div id="chat-messages" style="flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; margin-bottom: 10px; height: 500px;">
+                        </div>
+                    
+                    <div id="reply-preview-container" style="display: none; background: #222; border-left: 3px solid #007bff; padding: 8px; margin-bottom: 8px; border-radius: 4px; position: relative;">
+                        <div id="reply-preview-text" style="font-size: 11px; color: #aaa; margin-right: 20px;"></div>
+                        <span onclick="cancelReply()" style="position: absolute; right: 8px; top: 8px; cursor: pointer; color: #ff4a4a; font-size: 12px;">✖</span>
                     </div>
 
-                    <div style="display: flex; gap: 5px; align-items: flex-end;">
-                        <textarea id="chat-text" rows="2" placeholder="Type a message... (Shift+Enter for new line)" style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
-                        <button class="btn-blue" style="flex: 1; font-size: 13px; padding: 15px 8px; height: 100%;" onclick="sendChatMessage()">Send</button>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="chat-name" placeholder="Your Nickname..." style="margin: 0; font-size: 13px; flex: 1;">
+                            <button id="btn-lock-name" class="btn-gold" style="font-size: 11px; padding: 0 10px;" onclick="toggleNameLock()">🔒 Lock</button>
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: flex-end;">
+                            <textarea id="chat-text" rows="2" placeholder="Type a message... (Shift+Enter for new line)" style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
+                            <button class="btn-blue" style="flex: 1; font-size: 13px; padding: 15px 8px; height: 100%;" onclick="sendChatMessage()">Send</button>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
 
-    </div>
+        <div class="notes-container">
+            <h3 style="margin-top: 0; color: #d4af37; font-size: 14px; text-align: right;" dir="rtl">📝 הערות צוות פנימיות</h3>
+            <textarea id="team-notes" rows="6" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; font-family: Tahoma, sans-serif;" dir="rtl" placeholder="כתוב הערות לכל המודים כאן..."></textarea>
+            <button id="btn-save-notes" class="btn-blue" style="width: 100%; margin-top: 5px; font-size: 12px; padding: 6px;" onclick="saveNotes()">שמור הערות לכולם</button>
+        </div>
 
-    <div class="notes-container">
-        <h3 style="margin-top: 0; color: #d4af37; font-size: 14px; text-align: right;" dir="rtl">📝 הערות צוות פנימיות</h3>
-        <textarea id="team-notes" rows="6" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; font-family: Tahoma, sans-serif;" dir="rtl" placeholder="כתוב הערות לכל המודים כאן..."></textarea>
-        <button id="btn-save-notes" class="btn-blue" style="width: 100%; margin-top: 5px; font-size: 12px; padding: 6px;" onclick="saveNotes()">שמור הערות לכולם</button>
-    </div>
-
-    <script>
+    </div> <script>
         const firebaseConfig = { databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -249,7 +276,13 @@
             localStorage.setItem('elden_mod_id', localUserId);
         }
 
+        // --- מערכת התחברות וטעינה מוסתרת (Base64) ---
         window.onload = function() {
+            if(sessionStorage.getItem('studio_logged_in') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'flex';
+            }
+
             const savedName = localStorage.getItem('elden_mod_name');
             if (savedName) {
                 document.getElementById('chat-name').value = savedName;
@@ -257,6 +290,19 @@
             }
         };
 
+        function checkPassword() {
+            const input = document.getElementById('studio-password').value;
+            // "liorslife174" בקידוד Base64
+            if (btoa(input) === "bGlvcnNsaWZlMTc0") {
+                sessionStorage.setItem('studio_logged_in', 'true');
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'flex';
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        // --- שאר הפונקציות ---
         function toggleNameLock() {
             const nameField = document.getElementById('chat-name');
             if (nameField.readOnly) {
@@ -316,7 +362,6 @@
             }
         }
 
-        // --- Helper Function: Close All Menus ---
         function closeAllMenus() {
             const menu = document.getElementById("main-menu");
             if(menu) menu.classList.remove('show-menu');
@@ -373,7 +418,6 @@
             }
         });
 
-        // --- הלב של המערכת הדו-שלבית ---
         db.ref('elden/current_boss').on('value', snap => {
             activeBossData = snap.val();
             if(activeBossData && activeBossData.active) {
@@ -381,7 +425,6 @@
                 document.getElementById('finish-boss-form').style.display = 'block';
                 document.getElementById('active-boss-name-label').innerHTML = `${activeBossData.name} <span style="color:#ff4a4a;">(💀 ${activeBossData.deaths || 0})</span>`;
                 
-                // בודק באיזה שלב אנחנו
                 if(activeBossData.status === 'pending_defeat') {
                     document.getElementById('fight-step-1').style.display = 'none';
                     document.getElementById('fight-step-2').style.display = 'flex';
@@ -477,7 +520,6 @@
             db.ref('elden/chat/' + messageKey).remove();
         }
 
-        // --- מחיקת צ'אט, איפוס טיימר ואיפוס מיתות מתוקנים ---
         function clearChat() {
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
                 db.ref('elden/chat').remove();
@@ -487,7 +529,6 @@
 
         function resetTimer() {
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
-                // שינוי ל-isRunning: false כדי שלא יתחיל לרוץ אוטומטית מיד אחרי האיפוס
                 db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 });
                 closeAllMenus();
             }
@@ -500,7 +541,6 @@
             }
         }
 
-        // --- Notes System (Hebrew Panel) ---
         db.ref('elden/notes').on('value', snap => {
             const notesText = snap.val() || '';
             const textarea = document.getElementById('team-notes');
@@ -624,7 +664,6 @@
             }
         }
 
-        // --- Search API ---
         async function searchBossApi() {
             const query = document.getElementById('api-search').value.trim();
             const container = document.getElementById('api-results-container');
@@ -700,13 +739,11 @@
             document.getElementById('hist-api-results-container').innerHTML = '<span style="color:#28a745;">✅ Loaded into past boss form. Add time/deaths and click Add.</span>';
         }
 
-        // --- Fight Actions (Two-Step Defeat) ---
         function startBossFight() {
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
             if(!name) return alert("Enter boss name or select from list");
             
-            // בסטטוס התחלתי הוא fighting
             db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: Date.now(), deaths: 0, status: 'fighting' });
             
             document.getElementById('cb-name-input').value = '';
@@ -726,22 +763,18 @@
 
         function initiateBossDefeat() {
             if(!activeBossData) return;
-            // שומר את הזמן המדויק של הלחיצה!
             const elapsed = Date.now() - activeBossData.startTime;
             db.ref('elden/current_boss').update({ status: 'pending_defeat', defeatTime: elapsed });
         }
 
         function resumeBossFight() {
-            // מחזיר את הבוס למצב לחימה רגיל ומוחק את הזמן הקפוא
             db.ref('elden/current_boss/status').set('fighting');
             db.ref('elden/current_boss/defeatTime').remove();
         }
 
         function confirmBossDefeat() {
             if(!confirm("⚠️ Are you sure you want to finalize this boss?")) return;
-
             const deathsCount = activeBossData.deaths || 0;
-            // משתמש בזמן שהוקפא מהלחיצה הראשונה (או מחשב עכשיו אם מסיבה כלשהי הוא חסר)
             const elapsedMs = activeBossData.defeatTime || (Date.now() - activeBossData.startTime);
             
             let totalSecs = Math.floor(elapsedMs / 1000);
@@ -760,7 +793,6 @@
             db.ref('elden/current_boss').set({ active: false });
         }
 
-        // --- Standby System ---
         function standbyBossFight() {
             if(!activeBossData || !activeBossData.active) return;
             const accumulatedMs = Date.now() - activeBossData.startTime;

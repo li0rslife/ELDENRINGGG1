@@ -84,17 +84,23 @@
         .chat-reply-sender { font-weight: bold; color: #d4af37; display: block; margin-bottom: 2px; }
 
         .notes-container { position: fixed; bottom: 20px; right: 20px; background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #d4af37; box-shadow: 0 4px 15px rgba(0,0,0,0.9); z-index: 1000; width: 250px; }
+        
+        /* Spinner */
+        .loader { border: 4px solid #333; border-top: 4px solid #d4af37; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body dir="rtl">
 
     <div id="login-screen">
-        <div class="login-box" dir="ltr">
-            <h2 class="login-title">Studio Access</h2>
-            <input type="text" id="studio-username" placeholder="Username" style="text-align: center; font-size: 16px; margin-bottom: 10px;" onkeypress="if(event.key==='Enter') checkPassword()">
-            <input type="password" id="studio-password" placeholder="Password" style="text-align: center; font-size: 16px; margin-bottom: 15px;" onkeypress="if(event.key==='Enter') checkPassword()">
-            <button class="btn-gold" style="width: 100%; font-size: 16px;" onclick="checkPassword()">Login</button>
-            <p id="login-error" style="color: #ff4a4a; display: none; margin-top: 15px; font-size: 13px; font-weight: bold;">❌ Wrong Username or Password!</p>
+        <div class="login-box" id="login-box-container" dir="ltr">
+            <div id="login-form">
+                <h2 class="login-title">Studio Access</h2>
+                <input type="text" id="studio-username" placeholder="Username" style="text-align: center; font-size: 16px; margin-bottom: 10px;" onkeypress="if(event.key==='Enter') checkPassword()">
+                <input type="password" id="studio-password" placeholder="Password" style="text-align: center; font-size: 16px; margin-bottom: 15px;" onkeypress="if(event.key==='Enter') checkPassword()">
+                <button class="btn-gold" style="width: 100%; font-size: 16px;" onclick="checkPassword()">Login</button>
+                <p id="login-error" style="color: #ff4a4a; display: none; margin-top: 15px; font-size: 13px; font-weight: bold;">❌ Wrong Username or Password!</p>
+            </div>
         </div>
     </div>
 
@@ -102,14 +108,11 @@
         <div class="main-container">
             
             <div class="panel-column">
-                
                 <div class="hamburger-menu">
                     <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
                     <div class="hamburger-dropdown" id="main-menu" dir="ltr">
                         <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
-                        
                         <button class="btn-blue" style="margin-top: 5px;" onclick="logoutStudio()">🚪 Logout</button>
-
                         <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
                         <div id="danger-sub-menu">
                             <button class="btn-red" onclick="cancelBossFight()">❌ Cancel Current Fight</button>
@@ -257,15 +260,12 @@
     </div> <script>
         // ==========================================
         // רשימת המשתמשים במערכת (Users Dictionary)
-        // השם משמאל (באותיות קטנות), הסיסמה מימין (בקידוד Base64)
-        // ==========================================
         const MOD_ACCOUNTS = {
             "omri6451": "bGlvcnNsaWZlMTc0", 
-            "lior": "bGlvcnNsaWZlMTc0",     // סיסמה לדוגמה: pass123
-            "thewitcher_666": "bGlvcnNsaWZlMTc0",         // סיסמה לדוגמה: mod456
-            "chitos126": "bGlvcnNsaWZlMTc0",    // סיסמה לדוגמה: stream789
-            "Michael166": "bGlvcnNsaWZlMTc0=",           // סיסמה לדוגמה: or123
-            "sean": "bGlvcnNsaWZlMTc0"          // סיסמה לדוגמה: sean99
+            "lior": "bGlvcnNsaWZlMTc0",     
+            "thewitcher_666": "bGlvcnNsaWZlMTc0",         
+            "chitos126": "bGlvcnNsaWZlMTc0",   
+            "Michael166": "bGlvcnNsaWZlMTc0=",          
         };
 
         const firebaseConfig = { databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/" };
@@ -282,7 +282,7 @@
         let chatMessagesObj = {}; 
         let replyingTo = null; 
         
-        // יצירת ID של Session נוכחי כדי לדעת אם מישהו השתלט לנו על היוזר
+        // יצירת ID של Session נוכחי
         let mySessionId = Math.random().toString(36).substr(2, 9);
         
         let localUserId = localStorage.getItem('elden_mod_id');
@@ -291,7 +291,7 @@
             localStorage.setItem('elden_mod_id', localUserId);
         }
 
-        // --- מערכת התחברות קבועה והשתלטות (Takeover) ---
+        // --- מערכת התחברות קבועה והשתלטות חכמה (Approval/Takeover) ---
         window.onload = function() {
             const loggedInUser = localStorage.getItem('studio_logged_in_user');
             if(loggedInUser) {
@@ -304,32 +304,91 @@
             const pass = document.getElementById('studio-password').value;
             
             if (MOD_ACCOUNTS[user] && MOD_ACCOUNTS[user] === btoa(pass)) {
-                localStorage.setItem('studio_logged_in_user', user);
-                performLogin(user);
+                // בדיקה אם המשתמש כבר מחובר ממקום אחר לפני שמכניסים
+                db.ref('elden/active_users/' + user).once('value', snap => {
+                    const activeSession = snap.val();
+                    if (activeSession && activeSession !== mySessionId) {
+                        // מישהו אחר מחובר - מפעילים את מערכת הבקשה!
+                        requestAccessToAccount(user);
+                    } else {
+                        // פנוי - כניסה רגילה
+                        localStorage.setItem('studio_logged_in_user', user);
+                        performLogin(user);
+                    }
+                });
             } else {
                 document.getElementById('login-error').style.display = 'block';
             }
         }
 
+        // הפונקציה למשתמש החדש שמבקש להיכנס
+        function requestAccessToAccount(user) {
+            document.getElementById('login-error').style.display = 'none';
+            // הופך את התיבה למסך המתנה
+            document.getElementById('login-box-container').innerHTML = `
+                <h3 style="color:#d4af37; margin-top:0;">Waiting for Approval...</h3>
+                <p style="font-size:14px; color:#aaa; margin-bottom:20px;">This account is currently active on another device. A request has been sent to them.</p>
+                <div class="loader"></div>
+                <button class="btn-red" style="width:100%; margin-top:25px;" onclick="cancelAccessRequest('${user}')">Cancel Request</button>
+            `;
+            
+            // שולח את הבקשה לפיירבייס
+            db.ref('elden/access_requests/' + user).set(mySessionId);
+            
+            // מאזין לתשובה (נדחה או אישר)
+            const reqRef = db.ref('elden/access_requests/' + user);
+            reqRef.on('value', snap => {
+                if (snap.val() === 'denied') {
+                    reqRef.off();
+                    alert("⚠️ Access Denied!\nThe active user declined your login request.");
+                    location.reload(); 
+                }
+            });
+            
+            // מאזין אם המשתמש הפעיל התחלף אלינו (אישור)
+            db.ref('elden/active_users/' + user).on('value', snap => {
+                if (snap.val() === mySessionId) {
+                    db.ref('elden/active_users/' + user).off();
+                    reqRef.off();
+                    localStorage.setItem('studio_logged_in_user', user);
+                    performLogin(user); // מכניס אותו סוף סוף!
+                }
+            });
+        }
+
+        // ביטול בקשה אם נמאס לחכות
+        function cancelAccessRequest(user) {
+            db.ref('elden/access_requests/' + user).remove();
+            location.reload();
+        }
+
+        // הפונקציה שמכניסה משתמש למערכת ומאזינה לבקשות של אחרים
         function performLogin(user) {
-            // רושמים את ה-Session הנוכחי במסד הנתונים בפיירבייס תחת השם של המשתמש
             const userRef = db.ref('elden/active_users/' + user);
             userRef.set(mySessionId);
-            
-            // אם הדפדפן נסגר, זה מוחק אותו משם אוטומטית (כדי שלא יישאר "תקוע")
-            userRef.onDisconnect().remove();
+            userRef.onDisconnect().remove(); // מוחק אם הוא סוגר את הכרטיסייה
 
-            // מאזין: אם המזהה משתנה, זה אומר שמישהו אחר התחבר עכשיו לאותו יוזר!
-            userRef.on('value', snap => {
-                const activeSession = snap.val();
-                if (activeSession && activeSession !== mySessionId) {
-                    // זורקים את המשתמש הנוכחי החוצה
-                    alert("⚠️ Disconnected:\nSomeone else logged into '" + user + "' from another device or tab.");
-                    forceLogout();
+            // מאזין אם מישהו מנסה להיכנס למשתמש שלי
+            db.ref('elden/access_requests/' + user).on('value', snap => {
+                const requestedSession = snap.val();
+                // אם יש בקשה, והיא לא נדחתה כבר, והיא לא שלי:
+                if (requestedSession && requestedSession !== 'denied' && requestedSession !== mySessionId) {
+                    // מקפיץ חלון למשתמש המחובר!
+                    const approve = confirm("⚠️ LOGIN REQUEST!\n\nSomeone is trying to log into '" + user + "' from another device right now.\n\nApprove access and log out of this computer?");
+                    
+                    if (approve) {
+                        // הוא אישר: מעביר את השליטה לסשן החדש, מוחק את הבקשה, ומתנתק!
+                        db.ref('elden/active_users/' + user).set(requestedSession);
+                        db.ref('elden/access_requests/' + user).remove();
+                        forceLogout();
+                    } else {
+                        // הוא דחה: מסמן את הבקשה כדחויה כדי שהשני יקבל התראה
+                        db.ref('elden/access_requests/' + user).set('denied');
+                    }
                 }
             });
 
-            // פותח את המערכת וקובע את השם בצ'אט
+            // חושף את הפאנל
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-content').style.display = 'flex';
             document.getElementById('chat-name').value = user.charAt(0).toUpperCase() + user.slice(1);
@@ -337,15 +396,9 @@
 
         function logoutStudio(ask = true) {
             if(ask && !confirm("Are you sure you want to log out?")) return;
-            
             const user = localStorage.getItem('studio_logged_in_user');
-            if (user) {
-                // מוחק את היוזר מהרשימה הפעילה
-                db.ref('elden/active_users/' + user).remove();
-            }
-            
-            localStorage.removeItem('studio_logged_in_user');
-            location.reload(); 
+            if (user) { db.ref('elden/active_users/' + user).remove(); }
+            forceLogout();
         }
 
         function forceLogout() {
@@ -517,7 +570,7 @@
         });
 
         function sendChatMessage() {
-            const nameInput = document.getElementById('chat-name').value.trim();
+            const nameInput = document.getElementById('chat-name').value.trim() || 'Mod';
             const textInput = document.getElementById('chat-text').value.trim();
             if(!textInput) return;
 

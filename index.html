@@ -17,11 +17,10 @@
         }
         .login-box {
             background: #1e1e1e; padding: 40px; border-radius: 12px; border: 1px solid #d4af37;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; width: 320px;
         }
         .login-title { color: #d4af37; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
         
-        /* תוכן האפליקציה (מוסתר בהתחלה) */
         #app-content { display: none; width: 100%; justify-content: center; }
 
         .main-container { display: flex; gap: 20px; max-width: 1300px; width: 100%; align-items: flex-start; flex-wrap: wrap; }
@@ -56,7 +55,7 @@
         .edit-row { display: flex; flex-direction: column; gap: 5px; background: #222; padding: 10px; border-radius: 4px; border: 1px solid #d4af37; }
         .edit-row input { margin-bottom: 0; padding: 5px; font-size: 12px; }
 
-        /* --- Hamburger --- */
+        /* --- המבורגר --- */
         .hamburger-menu { position: absolute; top: 15px; right: 15px; z-index: 100; }
         .hamburger-icon { cursor: pointer; font-size: 20px; color: #ccc; padding: 4px 10px; border-radius: 4px; transition: 0.2s; user-select: none; background: #333; border: 1px solid #555; }
         .hamburger-icon:hover { color: #fff; background: #444; }
@@ -92,15 +91,16 @@
     <div id="login-screen">
         <div class="login-box" dir="ltr">
             <h2 class="login-title">Studio Access</h2>
-            <input type="password" id="studio-password" placeholder="Enter Team Password" style="text-align: center; font-size: 16px; margin-bottom: 15px;" onkeypress="if(event.key==='Enter') checkPassword()">
+            <input type="text" id="studio-username" placeholder="Username" style="text-align: center; font-size: 16px; margin-bottom: 10px;" onkeypress="if(event.key==='Enter') checkPassword()">
+            <input type="password" id="studio-password" placeholder="Password" style="text-align: center; font-size: 16px; margin-bottom: 15px;" onkeypress="if(event.key==='Enter') checkPassword()">
             <button class="btn-gold" style="width: 100%; font-size: 16px;" onclick="checkPassword()">Login</button>
-            <p id="login-error" style="color: #ff4a4a; display: none; margin-top: 15px; font-size: 13px; font-weight: bold;">❌ Incorrect Password!</p>
+            <p id="login-error" style="color: #ff4a4a; display: none; margin-top: 15px; font-size: 13px; font-weight: bold;">❌ Wrong Username or Password!</p>
         </div>
     </div>
 
     <div id="app-content">
-
         <div class="main-container">
+            
             <div class="panel-column">
                 
                 <div class="hamburger-menu">
@@ -108,6 +108,8 @@
                     <div class="hamburger-dropdown" id="main-menu" dir="ltr">
                         <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
                         
+                        <button class="btn-blue" style="margin-top: 5px;" onclick="logoutStudio()">🚪 Logout</button>
+
                         <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
                         <div id="danger-sub-menu">
                             <button class="btn-red" onclick="cancelBossFight()">❌ Cancel Current Fight</button>
@@ -234,10 +236,7 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; gap: 5px;">
-                            <input type="text" id="chat-name" placeholder="Your Nickname..." style="margin: 0; font-size: 13px; flex: 1;">
-                            <button id="btn-lock-name" class="btn-gold" style="font-size: 11px; padding: 0 10px;" onclick="toggleNameLock()">🔒 Lock</button>
-                        </div>
+                        <input type="text" id="chat-name" placeholder="Nickname" style="display: none;">
 
                         <div style="display: flex; gap: 5px; align-items: flex-end;">
                             <textarea id="chat-text" rows="2" placeholder="Type a message... (Shift+Enter for new line)" style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
@@ -256,6 +255,19 @@
         </div>
 
     </div> <script>
+        // ==========================================
+        // רשימת המשתמשים במערכת (Users Dictionary)
+        // השם משמאל (באותיות קטנות), הסיסמה מימין (בקידוד Base64)
+        // ==========================================
+        const MOD_ACCOUNTS = {
+            "omri6451": "bGlvcnNsaWZlMTc0", 
+            "lior": "bGlvcnNsaWZlMTc0",     // סיסמה לדוגמה: pass123
+            "thewitcher_666": "bGlvcnNsaWZlMTc0",         // סיסמה לדוגמה: mod456
+            "chitos126": "bGlvcnNsaWZlMTc0",    // סיסמה לדוגמה: stream789
+            "Michael166": "bGlvcnNsaWZlMTc0=",           // סיסמה לדוגמה: or123
+            "sean": "bGlvcnNsaWZlMTc0"          // סיסמה לדוגמה: sean99
+        };
+
         const firebaseConfig = { databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -270,62 +282,78 @@
         let chatMessagesObj = {}; 
         let replyingTo = null; 
         
+        // יצירת ID של Session נוכחי כדי לדעת אם מישהו השתלט לנו על היוזר
+        let mySessionId = Math.random().toString(36).substr(2, 9);
+        
         let localUserId = localStorage.getItem('elden_mod_id');
         if (!localUserId) {
             localUserId = 'mod_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('elden_mod_id', localUserId);
         }
 
-        // --- מערכת התחברות וטעינה מוסתרת (Base64) ---
+        // --- מערכת התחברות קבועה והשתלטות (Takeover) ---
         window.onload = function() {
-            if(sessionStorage.getItem('studio_logged_in') === 'true') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'flex';
-            }
-
-            const savedName = localStorage.getItem('elden_mod_name');
-            if (savedName) {
-                document.getElementById('chat-name').value = savedName;
-                lockNameField();
+            const loggedInUser = localStorage.getItem('studio_logged_in_user');
+            if(loggedInUser) {
+                performLogin(loggedInUser);
             }
         };
 
         function checkPassword() {
-            const input = document.getElementById('studio-password').value;
-            // "liorslife174" בקידוד Base64
-            if (btoa(input) === "bGlvcnNsaWZlMTc0") {
-                sessionStorage.setItem('studio_logged_in', 'true');
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'flex';
+            const user = document.getElementById('studio-username').value.trim().toLowerCase();
+            const pass = document.getElementById('studio-password').value;
+            
+            if (MOD_ACCOUNTS[user] && MOD_ACCOUNTS[user] === btoa(pass)) {
+                localStorage.setItem('studio_logged_in_user', user);
+                performLogin(user);
             } else {
                 document.getElementById('login-error').style.display = 'block';
             }
         }
 
-        // --- שאר הפונקציות ---
-        function toggleNameLock() {
-            const nameField = document.getElementById('chat-name');
-            if (nameField.readOnly) {
-                nameField.readOnly = false;
-                nameField.style.opacity = '1';
-                document.getElementById('btn-lock-name').innerText = "🔒 Lock";
-                document.getElementById('btn-lock-name').className = "btn-gold";
-            } else {
-                const val = nameField.value.trim();
-                if(!val) return alert("Enter a name first!");
-                localStorage.setItem('elden_mod_name', val);
-                lockNameField();
+        function performLogin(user) {
+            // רושמים את ה-Session הנוכחי במסד הנתונים בפיירבייס תחת השם של המשתמש
+            const userRef = db.ref('elden/active_users/' + user);
+            userRef.set(mySessionId);
+            
+            // אם הדפדפן נסגר, זה מוחק אותו משם אוטומטית (כדי שלא יישאר "תקוע")
+            userRef.onDisconnect().remove();
+
+            // מאזין: אם המזהה משתנה, זה אומר שמישהו אחר התחבר עכשיו לאותו יוזר!
+            userRef.on('value', snap => {
+                const activeSession = snap.val();
+                if (activeSession && activeSession !== mySessionId) {
+                    // זורקים את המשתמש הנוכחי החוצה
+                    alert("⚠️ Disconnected:\nSomeone else logged into '" + user + "' from another device or tab.");
+                    forceLogout();
+                }
+            });
+
+            // פותח את המערכת וקובע את השם בצ'אט
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-content').style.display = 'flex';
+            document.getElementById('chat-name').value = user.charAt(0).toUpperCase() + user.slice(1);
+        }
+
+        function logoutStudio(ask = true) {
+            if(ask && !confirm("Are you sure you want to log out?")) return;
+            
+            const user = localStorage.getItem('studio_logged_in_user');
+            if (user) {
+                // מוחק את היוזר מהרשימה הפעילה
+                db.ref('elden/active_users/' + user).remove();
             }
+            
+            localStorage.removeItem('studio_logged_in_user');
+            location.reload(); 
         }
 
-        function lockNameField() {
-            const nameField = document.getElementById('chat-name');
-            nameField.readOnly = true;
-            nameField.style.opacity = '0.6';
-            document.getElementById('btn-lock-name').innerText = "✏️ Edit";
-            document.getElementById('btn-lock-name').className = "btn-blue";
+        function forceLogout() {
+            localStorage.removeItem('studio_logged_in_user');
+            location.reload();
         }
 
+        // --- שאר הפונקציות ---
         function handleChatKey(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -491,18 +519,7 @@
         function sendChatMessage() {
             const nameInput = document.getElementById('chat-name').value.trim();
             const textInput = document.getElementById('chat-text').value.trim();
-            
-            if(!nameInput) {
-                alert("Please set a nickname first!");
-                document.getElementById('chat-name').focus();
-                return;
-            }
             if(!textInput) return;
-
-            if(!document.getElementById('chat-name').readOnly) {
-                localStorage.setItem('elden_mod_name', nameInput);
-                lockNameField();
-            }
 
             db.ref('elden/chat').push({
                 name: nameInput,
@@ -523,20 +540,6 @@
         function clearChat() {
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
                 db.ref('elden/chat').remove();
-                closeAllMenus();
-            }
-        }
-
-        function resetTimer() {
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
-                db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 });
-                closeAllMenus();
-            }
-        }
-
-        function resetDeaths() {
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!")) {
-                db.ref('elden/deaths').set(0);
                 closeAllMenus();
             }
         }

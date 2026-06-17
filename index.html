@@ -257,7 +257,9 @@
             <button id="btn-save-notes" class="btn-blue" style="width: 100%; margin-top: 5px; font-size: 12px; padding: 6px;" onclick="saveNotes()">שמור הערות לכולם</button>
         </div>
 
-    </div> <script>
+    </div> 
+    
+    <script>
         // ==========================================
         // רשימת המשתמשים במערכת (Users Dictionary)
         const MOD_ACCOUNTS = {
@@ -936,6 +938,23 @@
 
             db.ref('elden/bosses').set(currentBosses);
             editingIndex = -1; 
+        }
+
+        function resetTimer() {
+            closeAllMenus();
+            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset the main timer to 0?")) {
+                db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 });
+            }
+        }
+
+        function resetDeaths() {
+            closeAllMenus();
+            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset ALL deaths to 0?")) {
+                db.ref('elden/deaths').set(0);
+                if (activeBossData && activeBossData.active) {
+                    db.ref('elden/current_boss/deaths').set(0);
+                }
+            }
         }
     </script>
 </body>

@@ -11,7 +11,7 @@
         .panel-column { flex: 1; background: #1e1e1e; padding: 25px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative; min-width: 300px; }
         
         h2 { text-align: center; color: #d4af37; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top:0;}
-        .section { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+        .section { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; transition: all 0.3s ease; }
         h3 { margin-top: 0; font-size: 15px; color: #ccc; }
         
         .controls { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -23,7 +23,7 @@
         .btn-gold { background: #d4af37; color: #111; } .btn-gold:hover { background: #f0d494; }
         .btn-blue { background: #007bff; } .btn-blue:hover { background: #3395ff; }
 
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
         
         .search-results { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; margin-top: 10px; }
         .boss-search-card { background: #111; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer; border: 1px solid #333; }
@@ -49,16 +49,26 @@
         .show-menu { display: block !important; }
         #danger-sub-menu { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555; }
 
+        /* --- אזורים נפתחים/נסגרים (Accordions) --- */
+        .collapsible-header { 
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center; 
+            padding: 5px; border-radius: 4px; user-select: none; transition: background 0.2s;
+        }
+        .collapsible-header:hover { background: rgba(255,255,255,0.05); }
+        .collapsible-content { display: none; margin-top: 10px; border-top: 1px solid #444; padding-top: 15px; }
+
         /* --- צ'אט מודים --- */
         #chat-messages::-webkit-scrollbar { width: 6px; }
         #chat-messages::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
         #chat-messages::-webkit-scrollbar-track { background: #111; }
         .chat-msg { background: #222; padding: 8px; border-radius: 6px; border-left: 3px solid #007bff; margin-bottom: 8px; text-align: left; }
         .chat-time { font-size: 10px; color: #888; margin-right: 5px; }
-        .chat-delete-btn { font-size: 11px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
-        .chat-delete-btn:hover { opacity: 1; }
+        .chat-action-btn { font-size: 11px; cursor: pointer; opacity: 0.6; transition: 0.2s; margin-left: 6px; text-decoration: none; }
+        .chat-action-btn:hover { opacity: 1; }
         .chat-sender { color: #d4af37; font-size: 12px; font-weight: bold; margin-bottom: 2px; display: block; }
-        .chat-text { font-size: 13px; color: #ddd; word-wrap: break-word; }
+        .chat-text { font-size: 13px; color: #ddd; word-wrap: break-word; white-space: pre-wrap; }
+        .chat-reply-box { background: rgba(0,0,0,0.3); border-left: 3px solid #d4af37; padding: 5px 8px; margin-bottom: 5px; border-radius: 0 4px 4px 0; font-size: 11px; color: #aaa; }
+        .chat-reply-sender { font-weight: bold; color: #d4af37; display: block; margin-bottom: 2px; }
 
         /* --- תיבת הערות צפה (Hebrew) --- */
         .notes-container {
@@ -78,8 +88,10 @@
                 <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
                 <div class="hamburger-dropdown" id="main-menu" dir="ltr">
                     <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
-                    <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
+                    
+                    <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
                     <div id="danger-sub-menu">
+                        <button class="btn-red" onclick="cancelBossFight()">❌ Cancel Current Fight</button>
                         <button class="btn-red" onclick="resetTimer()">🔄 Reset Main Timer</button>
                         <button class="btn-red" onclick="resetDeaths()">💀 Reset All Deaths</button>
                         <button class="btn-red" onclick="clearChat()">💬 Clear Chat</button>
@@ -147,31 +159,34 @@
                         <button class="btn-active" style="flex: 2;" onclick="finishBossFight()">🏆 Boss Defeated!</button>
                         <button class="btn-gold" style="flex: 1;" onclick="standbyBossFight()">⏸️ Put on Standby</button>
                     </div>
-                    <button class="btn-red" style="width: 100%; margin-top: 10px;" onclick="cancelBossFight()">Cancel current fight</button>
                 </div>
             </div>
 
             <div class="section">
-                <h3>⏸️ Bosses on Standby</h3>
-                <div id="standby-bosses-container"></div>
+                <h3 class="collapsible-header" onclick="toggleSection('standby-section-content', this)">⏸️ Bosses on Standby <span class="arrow">▼</span></h3>
+                <div id="standby-section-content" class="collapsible-content">
+                    <div id="standby-bosses-container"></div>
+                </div>
             </div>
 
             <div class="section">
-                <h3>⏱️ Add Past Boss</h3>
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="hist-api-search" placeholder="Search past boss..." style="font-size:12px; margin-bottom:0;">
-                    <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">Search</button>
-                </div>
-                <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
+                <h3 class="collapsible-header" onclick="toggleSection('past-boss-section-content', this)">⏱️ Add Past Boss <span class="arrow">▼</span></h3>
+                <div id="past-boss-section-content" class="collapsible-content">
+                    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                        <input type="text" id="hist-api-search" placeholder="Search past boss..." style="font-size:12px; margin-bottom:0;">
+                        <button class="btn-blue" style="font-size:12px; padding:5px 15px;" onclick="searchHistBossApi()">Search</button>
+                    </div>
+                    <div class="search-results" id="hist-api-results-container" style="max-height: 150px; margin-bottom: 10px;"></div>
 
-                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                    <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
-                    <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;" title="Format must be HH:MM:SS">
-                    <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
-                </div>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="hist-img" placeholder="Image Link" style="flex: 3;">
-                    <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">Add</button>
+                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                        <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
+                        <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;" title="Format must be HH:MM:SS">
+                        <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="hist-img" placeholder="Image Link" style="flex: 3;">
+                        <button class="btn-blue" style="flex: 1;" onclick="addHistoricalBoss()">Add</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,11 +199,20 @@
                 <div id="chat-messages" style="flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; margin-bottom: 10px; height: 500px;">
                     </div>
                 
+                <div id="reply-preview-container" style="display: none; background: #222; border-left: 3px solid #007bff; padding: 8px; margin-bottom: 8px; border-radius: 4px; position: relative;">
+                    <div id="reply-preview-text" style="font-size: 11px; color: #aaa; margin-right: 20px;"></div>
+                    <span onclick="cancelReply()" style="position: absolute; right: 8px; top: 8px; cursor: pointer; color: #ff4a4a; font-size: 12px;">✖</span>
+                </div>
+
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="chat-name" placeholder="Your Nickname (e.g. Mod1)..." style="margin: 0; font-size: 13px;">
                     <div style="display: flex; gap: 5px;">
-                        <input type="text" id="chat-text" placeholder="Type a message..." style="margin: 0; flex: 3; font-size: 13px;" onkeypress="if(event.key==='Enter') sendChatMessage()">
-                        <button class="btn-blue" style="flex: 1; font-size: 13px; padding: 8px;" onclick="sendChatMessage()">Send</button>
+                        <input type="text" id="chat-name" placeholder="Your Nickname..." style="margin: 0; font-size: 13px; flex: 1;">
+                        <button id="btn-lock-name" class="btn-gold" style="font-size: 11px; padding: 0 10px;" onclick="toggleNameLock()">🔒 Lock</button>
+                    </div>
+
+                    <div style="display: flex; gap: 5px; align-items: flex-end;">
+                        <textarea id="chat-text" rows="2" placeholder="Type a message... (Shift+Enter for new line)" style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
+                        <button class="btn-blue" style="flex: 1; font-size: 13px; padding: 15px 8px; height: 100%;" onclick="sendChatMessage()">Send</button>
                     </div>
                 </div>
                 
@@ -215,10 +239,87 @@
         let timerData = { isRunning: true, startTime: Date.now(), accumulated: 0 };
         let editingIndex = -1; 
         
+        // --- משתני צ'אט ---
+        let chatMessagesObj = {}; 
+        let replyingTo = null; 
+        
         let localUserId = localStorage.getItem('elden_mod_id');
         if (!localUserId) {
             localUserId = 'mod_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('elden_mod_id', localUserId);
+        }
+
+        // --- טעינה ראשונית ונעילת שם ---
+        window.onload = function() {
+            const savedName = localStorage.getItem('elden_mod_name');
+            if (savedName) {
+                document.getElementById('chat-name').value = savedName;
+                lockNameField();
+            }
+        };
+
+        function toggleNameLock() {
+            const nameField = document.getElementById('chat-name');
+            if (nameField.readOnly) {
+                nameField.readOnly = false;
+                nameField.style.opacity = '1';
+                document.getElementById('btn-lock-name').innerText = "🔒 Lock";
+                document.getElementById('btn-lock-name').className = "btn-gold";
+            } else {
+                const val = nameField.value.trim();
+                if(!val) return alert("Enter a name first!");
+                localStorage.setItem('elden_mod_name', val);
+                lockNameField();
+            }
+        }
+
+        function lockNameField() {
+            const nameField = document.getElementById('chat-name');
+            nameField.readOnly = true;
+            nameField.style.opacity = '0.6';
+            document.getElementById('btn-lock-name').innerText = "✏️ Edit";
+            document.getElementById('btn-lock-name').className = "btn-blue";
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        // --- מערכת תגובות ---
+        function setReply(messageKey) {
+            const msg = chatMessagesObj[messageKey];
+            if(!msg) return;
+            
+            replyingTo = { name: msg.name, text: msg.text };
+            
+            const previewContainer = document.getElementById('reply-preview-container');
+            const previewText = document.getElementById('reply-preview-text');
+            
+            let shortText = msg.text.length > 50 ? msg.text.substring(0, 50) + '...' : msg.text;
+            previewText.innerHTML = `<strong style="color:#d4af37">${msg.name}:</strong> ${shortText}`;
+            previewContainer.style.display = 'block';
+            document.getElementById('chat-text').focus();
+        }
+
+        function cancelReply() {
+            replyingTo = null;
+            document.getElementById('reply-preview-container').style.display = 'none';
+        }
+
+        // --- מערכת אזורים נפתחים (Accordions) ---
+        function toggleSection(contentId, headerElement) {
+            const content = document.getElementById(contentId);
+            const arrow = headerElement.querySelector('.arrow');
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                if(arrow) arrow.innerHTML = "▼";
+            } else {
+                content.style.display = "block";
+                if(arrow) arrow.innerHTML = "▲";
+            }
         }
 
         // --- Hamburger ---
@@ -298,31 +399,46 @@
             renderStandbyBosses();
         });
 
-        // --- Chat System with Delete Feature ---
+        // --- Chat System Upgraded ---
         db.ref('elden/chat').limitToLast(50).on('value', snap => {
             const chatContainer = document.getElementById('chat-messages');
             chatContainer.innerHTML = '';
+            chatMessagesObj = {}; 
             
             const messages = [];
             snap.forEach(child => {
-                messages.push({ key: child.key, ...child.val() });
+                let msg = child.val();
+                msg.key = child.key;
+                messages.push(msg);
+                chatMessagesObj[child.key] = msg; 
             });
             
             messages.forEach(msg => {
                 const time = new Date(msg.timestamp).toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'});
                 
-                let deleteBtnHtml = '';
+                let actionBtns = `<span class="chat-action-btn" onclick="setReply('${msg.key}')" title="Reply">↩️</span>`;
                 if (msg.userId === localUserId) {
-                    deleteBtnHtml = `<span class="chat-delete-btn" onclick="deleteChatMessage('${msg.key}')" title="Delete Message">🗑️</span>`;
+                    actionBtns += `<span class="chat-action-btn" onclick="deleteChatMessage('${msg.key}')" title="Delete Message">🗑️</span>`;
+                }
+
+                let replyHtml = '';
+                if (msg.replyTo) {
+                    replyHtml = `
+                        <div class="chat-reply-box">
+                            <span class="chat-reply-sender">${msg.replyTo.name}</span>
+                            ${msg.replyTo.text}
+                        </div>
+                    `;
                 }
 
                 chatContainer.innerHTML += `
                     <div class="chat-msg">
                         <div style="float: right;">
                             <span class="chat-time">${time}</span>
-                            ${deleteBtnHtml}
+                            ${actionBtns}
                         </div>
                         <span class="chat-sender">${msg.name}</span>
+                        ${replyHtml}
                         <span class="chat-text">${msg.text}</span>
                     </div>
                 `;
@@ -331,22 +447,43 @@
         });
 
         function sendChatMessage() {
-            const nameInput = document.getElementById('chat-name').value.trim() || 'Mod';
+            const nameInput = document.getElementById('chat-name').value.trim();
             const textInput = document.getElementById('chat-text').value.trim();
+            
+            if(!nameInput) {
+                alert("Please set a nickname first!");
+                document.getElementById('chat-name').focus();
+                return;
+            }
             if(!textInput) return;
+
+            if(!document.getElementById('chat-name').readOnly) {
+                localStorage.setItem('elden_mod_name', nameInput);
+                lockNameField();
+            }
 
             db.ref('elden/chat').push({
                 name: nameInput,
                 text: textInput,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                userId: localUserId
+                userId: localUserId,
+                replyTo: replyingTo
             });
             
             document.getElementById('chat-text').value = '';
+            cancelReply(); 
         }
 
         function deleteChatMessage(messageKey) {
             db.ref('elden/chat/' + messageKey).remove();
+        }
+
+        function clearChat() {
+            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
+                db.ref('elden/chat').remove();
+                document.getElementById("main-menu").classList.remove("show-menu");
+                document.getElementById("danger-sub-menu").style.display = "none";
+            }
         }
 
         // --- Notes System (Hebrew Panel) ---
@@ -456,26 +593,9 @@
             }
         }
 
-        // --- Danger Menu Functions ---
-        function resetTimer() {
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
-                db.ref('elden/main_timer').set({ isRunning: true, startTime: Date.now(), accumulated: 0 });
-                document.getElementById("main-menu").classList.remove("show-menu");
-                document.getElementById("danger-sub-menu").style.display = "none";
-            }
-        }
-
-        function resetDeaths() {
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!")) {
-                db.ref('elden/deaths').set(0);
-                document.getElementById("main-menu").classList.remove("show-menu");
-                document.getElementById("danger-sub-menu").style.display = "none";
-            }
-        }
-
-        function clearChat() {
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
-                db.ref('elden/chat').remove();
+        function cancelBossFight() {
+            if(confirm("⚠️ CRITICAL WARNING: Cancel current fight without saving?")) {
+                db.ref('elden/current_boss').set({ active: false });
                 document.getElementById("main-menu").classList.remove("show-menu");
                 document.getElementById("danger-sub-menu").style.display = "none";
             }
@@ -643,12 +763,6 @@
                 deaths: boss.deaths,
                 startTime: Date.now() - boss.accumulatedMs
             });
-        }
-
-        function cancelBossFight() {
-            if(confirm("Cancel current fight without saving?")) {
-                db.ref('elden/current_boss').set({ active: false });
-            }
         }
 
         function addHistoricalBoss() {

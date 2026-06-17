@@ -473,7 +473,7 @@
             deathBtns.forEach(btn => { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; });
             setTimeout(() => {
                 deathBtns.forEach(btn => { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; });
-            }, 1000);
+            }, 3000);
         }
 
         db.ref('elden/deaths').on('value', snap => {

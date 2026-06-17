@@ -287,6 +287,15 @@
             localStorage.setItem('elden_mod_id', localUserId);
         }
 
+        // סנכרון זמן מול השרת למניעת קפיצות בשעון
+        let serverOffset = 0;
+        db.ref('.info/serverTimeOffset').on('value', snap => {
+            serverOffset = snap.val() || 0;
+        });
+        function getNow() {
+            return Date.now() + serverOffset;
+        }
+
         function formatTime(ms) {
             let totalSecs = Math.floor(ms / 1000);
             let h = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
@@ -295,10 +304,11 @@
             return `${h}:${m}:${s}`;
         }
 
+        // מרוץ פאנל שמתעדכן כל עשירית שנייה
         setInterval(() => {
             let elapsed = timerData.accumulated || 0;
             if (timerData.isRunning) {
-                elapsed += (Date.now() - timerData.startTime);
+                elapsed += (getNow() - timerData.startTime);
             }
             const panelMain = document.getElementById('panel-main-timer');
             if(panelMain) panelMain.innerText = formatTime(elapsed);
@@ -306,7 +316,7 @@
             if (activeBossData && activeBossData.active) {
                 let bossElapsed = activeBossData.accumulated || 0;
                 if (activeBossData.isRunning !== false && activeBossData.status !== 'pending_defeat') {
-                    bossElapsed += (Date.now() - activeBossData.startTime);
+                    bossElapsed += (getNow() - activeBossData.startTime);
                 }
                 if (activeBossData.status === 'pending_defeat') {
                     bossElapsed = activeBossData.defeatTime || bossElapsed;
@@ -314,7 +324,7 @@
                 const panelCb = document.getElementById('panel-cb-timer');
                 if(panelCb) panelCb.innerText = formatTime(bossElapsed);
             }
-        }, 1000);
+        }, 100);
 
         window.onload = function() {
             const loggedInUser = localStorage.getItem('studio_logged_in_user');
@@ -362,7 +372,6 @@
             }
         }
 
-        // --- שקיפות וגלאו מתוקנים פה! ---
         function updateOrnamentOpacity(val) {
             document.getElementById('ornament-opacity-val').innerText = val + '%';
             db.ref('elden/settings/ornaments_opacity').set(val / 100);
@@ -403,7 +412,6 @@
             if (document.activeElement !== slider) slider.value = val;
             document.getElementById('glow-val').innerText = val + '%';
         });
-        // --------------------------------
 
         function handleChatKey(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -583,7 +591,7 @@
         function resetTimer(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
-                db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 }); closeAllMenus();
+                db.ref('elden/main_timer').set({ isRunning: false, startTime: getNow(), accumulated: 0 }); closeAllMenus();
             }
         }
         function resetDeaths(e) {
@@ -677,7 +685,7 @@
             if(confirm("⚠️ WARNING: Are you sure the run is complete? This will stop the main timer and show a giant summary screen on stream!")) {
                 db.ref('elden/display_mode').set('completed');
                 if (timerData.isRunning) {
-                    let now = Date.now();
+                    let now = getNow();
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
                     db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
                 }
@@ -694,12 +702,12 @@
 
         function getBossElapsed() {
             let elapsed = activeBossData.accumulated || 0;
-            if (activeBossData.isRunning !== false) elapsed += (Date.now() - activeBossData.startTime);
+            if (activeBossData.isRunning !== false) elapsed += (getNow() - activeBossData.startTime);
             return elapsed;
         }
 
         function toggleTimer() {
-            let now = Date.now();
+            let now = getNow();
             if (timerData.isRunning) {
                 if(confirm("Are you sure you want to pause the main timer?")) {
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
@@ -796,7 +804,7 @@
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
             if(!name) return alert("Enter boss name or select from list");
-            db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: Date.now(), accumulated: 0, isRunning: timerData.isRunning, deaths: 0, status: 'fighting' });
+            db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: getNow(), accumulated: 0, isRunning: timerData.isRunning, deaths: 0, status: 'fighting' });
             document.getElementById('cb-name-input').value = ''; document.getElementById('cb-img-input').value = ''; document.getElementById('api-search').value = ''; document.getElementById('api-results-container').innerHTML = '';
         }
 
@@ -845,7 +853,7 @@
             const boss = standbyBosses[index];
             const updatedStandby = standbyBosses.filter((_, i) => i !== index);
             db.ref('elden/standby_bosses').set(updatedStandby);
-            db.ref('elden/current_boss').set({ active: true, name: boss.name, img: boss.img, deaths: boss.deaths, startTime: Date.now(), accumulated: boss.accumulatedMs, isRunning: timerData.isRunning, status: 'fighting' });
+            db.ref('elden/current_boss').set({ active: true, name: boss.name, img: boss.img, deaths: boss.deaths, startTime: getNow(), accumulated: boss.accumulatedMs, isRunning: timerData.isRunning, status: 'fighting' });
         }
 
         function addHistoricalBoss() {

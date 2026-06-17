@@ -8,14 +8,8 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; justify-content: center; margin: 0; }
         
-        #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #111 0%, #000 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;
-        }
-        .login-box {
-            background: #1e1e1e; padding: 40px; border-radius: 12px; border: 1px solid #d4af37;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; width: 320px;
-        }
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #111 0%, #000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: #1e1e1e; padding: 40px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; width: 320px; }
         .login-title { color: #d4af37; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
         
         #app-content { display: none; width: 100%; justify-content: center; }
@@ -58,7 +52,6 @@
         .hamburger-icon:hover { color: #fff; background: #444; }
         .hamburger-dropdown { display: none; position: absolute; right: 0; top: 40px; background: #1a1a1a; border: 1px solid #444; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.9); padding: 10px; width: 180px; }
         .hamburger-dropdown button { width: 100%; font-size: 12px; padding: 8px; margin-bottom: 5px; }
-        .hamburger-dropdown button:last-child { margin-bottom: 0; }
         .show-menu { display: block !important; }
         #danger-sub-menu { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555; }
 
@@ -95,16 +88,12 @@
 
     <div id="app-content">
         <div class="main-container">
-            
             <div class="panel-column">
-                
                 <div class="hamburger-menu">
                     <div class="hamburger-icon" onclick="toggleMenu(event)" title="Menu">☰</div>
                     <div class="hamburger-dropdown" id="main-menu" dir="ltr">
                         <button id="btn-mode-complete" class="btn-gold" style="font-size: 13px; border: 1px solid #a38222;" onclick="setCompletedMode()">🏆 Run Complete</button>
-                        
                         <button class="btn-blue" style="margin-top: 5px;" onclick="logoutStudio()">🚪 Logout</button>
-
                         <button class="btn-red" style="background: #5a2a2a; border: 1px solid #ff4a4a; margin-top: 5px;" onclick="toggleDangerMenu(event)">⚠️ Danger Zone ▾</button>
                         <div id="danger-sub-menu">
                             <button class="btn-red" onclick="cancelBossFight(event)">❌ Cancel Current Fight</button>
@@ -123,7 +112,6 @@
                         <button id="btn-mode-fight" style="flex:1" onclick="setDisplayMode('fighting')">⚔️ Fighting Now</button>
                         <button id="btn-mode-sleep" style="flex:1" onclick="setDisplayMode('sleeping')">💤 Sleeping</button>
                     </div>
-                    <p style="font-size: 11px; color:#aaa; margin: 5px 0 0 0; text-align:center;">(Run Complete is in the ☰ Menu)</p>
                 </div>
 
                 <div class="section" dir="ltr">
@@ -142,7 +130,13 @@
                 <div class="section" dir="ltr">
                     <h3 class="collapsible-header" onclick="toggleSection('design-settings-content', this)" style="color: #007bff;">🎨 Overlay Design <span class="arrow">▼</span></h3>
                     <div id="design-settings-content" class="collapsible-content">
-                        
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <label style="font-size: 12px; color: #ccc;">Ornaments Opacity</label>
+                                <span id="ornament-opacity-val" style="font-size: 12px; color: #d4af37; font-weight: bold;">100%</span>
+                            </div>
+                            <input type="range" id="ornament-opacity-slider" min="0" max="100" value="100" oninput="updateOrnamentOpacity(this.value)">
+                        </div>
                         <div style="margin-bottom: 20px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                                 <label style="font-size: 12px; color: #ccc;">Background Opacity</label>
@@ -150,15 +144,13 @@
                             </div>
                             <input type="range" id="bg-opacity-slider" min="0" max="100" value="95" oninput="updateOpacity(this.value)">
                         </div>
-
                         <div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                                 <label style="font-size: 12px; color: #ccc;">Text Glow Intensity</label>
-                                <span id="glow-val" style="font-size: 12px; color: #d4af37; font-weight: bold;">100%</span>
+                                <span id="glow-val" style="font-size: 12px; color: #d4af37; font-weight: bold;">0%</span>
                             </div>
-                            <input type="range" id="text-glow-slider" min="0" max="100" value="100" oninput="updateGlow(this.value)">
+                            <input type="range" id="text-glow-slider" min="0" max="100" value="0" oninput="updateGlow(this.value)">
                         </div>
-
                     </div>
                 </div>
 
@@ -172,7 +164,6 @@
 
             <div class="panel-column" dir="ltr">
                 <h2>⚔️ Current Live Fight</h2>
-                
                 <div class="section" id="active-boss-section">
                     <div style="display: flex; gap: 5px; margin-bottom: 10px;">
                         <input type="text" id="api-search" placeholder="Search boss in database..." style="font-size:12px; margin-bottom:0;">
@@ -183,7 +174,7 @@
                     <div id="start-boss-form">
                         <input type="text" id="cb-name-input" placeholder="Boss Name">
                         <input type="text" id="cb-img-input" placeholder="Image Link (Optional)">
-                        <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">Start Fight (Starts Boss Timer)</button>
+                        <button class="btn-gold" style="width: 100%;" onclick="startBossFight()">Start Fight</button>
                     </div>
                     
                     <div id="finish-boss-form" style="display: none; text-align: center;">
@@ -229,7 +220,7 @@
 
                         <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                             <input type="text" id="hist-name" placeholder="Boss Name" style="flex: 2;">
-                            <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;" title="Format must be HH:MM:SS">
+                            <input type="text" id="hist-time" placeholder="Time (e.g. 00:00:00)" style="flex: 1;">
                             <input type="number" id="hist-deaths" placeholder="Deaths" style="flex: 1;">
                         </div>
                         <div style="display: flex; gap: 5px;">
@@ -242,27 +233,21 @@
 
             <div class="panel-column" style="display: flex; flex-direction: column;" dir="ltr">
                 <h2>💬 Mods Live Chat</h2>
-                
                 <div class="section" style="flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100%;">
-                    
                     <div id="chat-messages" style="flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; margin-bottom: 10px; height: 500px;"></div>
-                    
                     <div id="reply-preview-container" style="display: none; background: #222; border-left: 3px solid #007bff; padding: 8px; margin-bottom: 8px; border-radius: 4px; position: relative;">
                         <div id="reply-preview-text" style="font-size: 11px; color: #aaa; margin-right: 20px;"></div>
                         <span onclick="cancelReply()" style="position: absolute; right: 8px; top: 8px; cursor: pointer; color: #ff4a4a; font-size: 12px;">✖</span>
                     </div>
-
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <input type="text" id="chat-name" placeholder="Nickname" style="display: none;">
-
                         <div style="display: flex; gap: 5px; align-items: flex-end;">
-                            <textarea id="chat-text" rows="2" placeholder="Type a message... (Shift+Enter for new line)" style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
+                            <textarea id="chat-text" rows="2" placeholder="Type a message..." style="margin: 0; flex: 3; font-size: 13px; resize: none;" onkeydown="handleChatKey(event)"></textarea>
                             <button class="btn-blue" style="flex: 1; font-size: 13px; padding: 15px 8px; height: 100%;" onclick="sendChatMessage()">Send</button>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div class="notes-container">
@@ -270,7 +255,6 @@
             <textarea id="team-notes" rows="6" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; font-family: Tahoma, sans-serif;" dir="rtl" placeholder="כתוב הערות לכל המודים כאן..."></textarea>
             <button id="btn-save-notes" class="btn-blue" style="width: 100%; margin-top: 5px; font-size: 12px; padding: 6px;" onclick="saveNotes()">שמור הערות לכולם</button>
         </div>
-
     </div> 
 
     <script>
@@ -311,7 +295,6 @@
             return `${h}:${m}:${s}`;
         }
 
-        // שעונים ויזואליים לפאנל מודים (שיראו מה קורה בזמן אמת)
         setInterval(() => {
             let elapsed = timerData.accumulated || 0;
             if (timerData.isRunning) {
@@ -335,9 +318,7 @@
 
         window.onload = function() {
             const loggedInUser = localStorage.getItem('studio_logged_in_user');
-            if(loggedInUser) {
-                performLogin(loggedInUser);
-            }
+            if(loggedInUser) performLogin(loggedInUser);
         };
 
         function checkPassword() {
@@ -347,7 +328,7 @@
             if (MOD_ACCOUNTS[user] && MOD_ACCOUNTS[user] === btoa(pass)) {
                 db.ref('elden/active_users/' + user).once('value', snap => {
                     if (snap.exists() && snap.val() === true) {
-                        alert("⚠️ Access Denied!\nThis user is already logged in from another browser or device.\nThey must click 'Logout' before you can log in.");
+                        alert("⚠️ Access Denied!\nThis user is already logged in from another browser or device.");
                     } else {
                         localStorage.setItem('studio_logged_in_user', user);
                         performLogin(user);
@@ -362,7 +343,6 @@
             const userRef = db.ref('elden/active_users/' + user);
             userRef.set(true); 
             userRef.onDisconnect().remove(); 
-
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-content').style.display = 'flex';
             document.getElementById('chat-name').value = user.charAt(0).toUpperCase() + user.slice(1);
@@ -382,14 +362,24 @@
             }
         }
 
+        // --- שקיפות וגלאו מתוקנים פה! ---
+        function updateOrnamentOpacity(val) {
+            document.getElementById('ornament-opacity-val').innerText = val + '%';
+            db.ref('elden/settings/ornaments_opacity').set(val / 100);
+        }
+
+        db.ref('elden/settings/ornaments_opacity').on('value', snap => {
+            let val = snap.val();
+            if (val === null) val = 1; 
+            const percent = Math.round(val * 100);
+            const slider = document.getElementById('ornament-opacity-slider');
+            if (document.activeElement !== slider) slider.value = percent;
+            document.getElementById('ornament-opacity-val').innerText = percent + '%';
+        });
+
         function updateOpacity(val) {
             document.getElementById('opacity-val').innerText = val + '%';
             db.ref('elden/settings/bg_opacity').set(val / 100);
-        }
-
-        function updateGlow(val) {
-            document.getElementById('glow-val').innerText = val + '%';
-            db.ref('elden/settings/text_glow').set(val / 100);
         }
 
         db.ref('elden/settings/bg_opacity').on('value', snap => {
@@ -397,22 +387,23 @@
             if (val === null) val = 0.95;
             const percent = Math.round(val * 100);
             const slider = document.getElementById('bg-opacity-slider');
-            if (document.activeElement !== slider) {
-                slider.value = percent;
-            }
+            if (document.activeElement !== slider) slider.value = percent;
             document.getElementById('opacity-val').innerText = percent + '%';
         });
 
-        db.ref('elden/settings/text_glow').on('value', snap => {
+        function updateGlow(val) {
+            document.getElementById('glow-val').innerText = val + '%';
+            db.ref('elden/settings/glow_level').set(parseInt(val));
+        }
+
+        db.ref('elden/settings/glow_level').on('value', snap => {
             let val = snap.val();
-            if (val === null) val = 1;
-            const percent = Math.round(val * 100);
+            if (val === null) val = 0; 
             const slider = document.getElementById('text-glow-slider');
-            if (document.activeElement !== slider) {
-                slider.value = percent;
-            }
-            document.getElementById('glow-val').innerText = percent + '%';
+            if (document.activeElement !== slider) slider.value = val;
+            document.getElementById('glow-val').innerText = val + '%';
         });
+        // --------------------------------
 
         function handleChatKey(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -552,21 +543,14 @@
             messages.forEach(msg => {
                 const time = new Date(msg.timestamp).toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'});
                 let actionBtns = `<span class="chat-action-btn" onclick="setReply('${msg.key}')" title="Reply">↩️</span>`;
-                if (msg.userId === localUserId) {
-                    actionBtns += `<span class="chat-action-btn" onclick="deleteChatMessage('${msg.key}')" title="Delete Message">🗑️</span>`;
-                }
+                if (msg.userId === localUserId) actionBtns += `<span class="chat-action-btn" onclick="deleteChatMessage('${msg.key}')" title="Delete Message">🗑️</span>`;
 
                 let replyHtml = '';
-                if (msg.replyTo) {
-                    replyHtml = `<div class="chat-reply-box"><span class="chat-reply-sender">${msg.replyTo.name}</span>${msg.replyTo.text}</div>`;
-                }
+                if (msg.replyTo) replyHtml = `<div class="chat-reply-box"><span class="chat-reply-sender">${msg.replyTo.name}</span>${msg.replyTo.text}</div>`;
 
                 chatContainer.innerHTML += `
                     <div class="chat-msg">
-                        <div style="float: right;">
-                            <span class="chat-time">${time}</span>
-                            ${actionBtns}
-                        </div>
+                        <div style="float: right;"><span class="chat-time">${time}</span>${actionBtns}</div>
                         <span class="chat-sender">${msg.name}</span>
                         ${replyHtml}
                         <span class="chat-text">${msg.text}</span>
@@ -582,72 +566,51 @@
             if(!textInput) return;
 
             db.ref('elden/chat').push({
-                name: nameInput,
-                text: textInput,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                userId: localUserId,
-                replyTo: replyingTo
+                name: nameInput, text: textInput, timestamp: firebase.database.ServerValue.TIMESTAMP, userId: localUserId, replyTo: replyingTo
             });
             
             document.getElementById('chat-text').value = '';
             cancelReply(); 
         }
 
-        function deleteChatMessage(messageKey) {
-            db.ref('elden/chat/' + messageKey).remove();
-        }
-
-        // --- תיקון לאיפוסים עם (event) שימנע ביטול שלהם ---
+        function deleteChatMessage(messageKey) { db.ref('elden/chat/' + messageKey).remove(); }
         function clearChat(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
-                db.ref('elden/chat').remove();
-                closeAllMenus();
+                db.ref('elden/chat').remove(); closeAllMenus();
             }
         }
-
         function resetTimer(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
-                db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 });
-                closeAllMenus();
+                db.ref('elden/main_timer').set({ isRunning: false, startTime: Date.now(), accumulated: 0 }); closeAllMenus();
             }
         }
-
         function resetDeaths(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!")) {
-                db.ref('elden/deaths').set(0);
-                closeAllMenus();
+                db.ref('elden/deaths').set(0); closeAllMenus();
             }
         }
-
         function cancelBossFight(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Cancel current fight without saving?")) {
-                db.ref('elden/current_boss').set({ active: false });
-                closeAllMenus();
+                db.ref('elden/current_boss').set({ active: false }); closeAllMenus();
             }
         }
 
         db.ref('elden/notes').on('value', snap => {
             const notesText = snap.val() || '';
             const textarea = document.getElementById('team-notes');
-            if (document.activeElement !== textarea) {
-                textarea.value = notesText;
-            }
+            if (document.activeElement !== textarea) textarea.value = notesText;
         });
 
         function saveNotes() {
             const text = document.getElementById('team-notes').value;
             db.ref('elden/notes').set(text);
             const btn = document.getElementById('btn-save-notes');
-            btn.innerText = "✅ נשמר בהצלחה";
-            btn.style.backgroundColor = "#28a745";
-            setTimeout(() => {
-                btn.innerText = "שמור הערות לכולם";
-                btn.style.backgroundColor = "#007bff";
-            }, 2000);
+            btn.innerText = "✅ נשמר בהצלחה"; btn.style.backgroundColor = "#28a745";
+            setTimeout(() => { btn.innerText = "שמור הערות לכולם"; btn.style.backgroundColor = "#007bff"; }, 2000);
         }
 
         function renderBossList() {
@@ -695,7 +658,6 @@
                 let m = Math.floor((boss.accumulatedMs / 1000 / 60) % 60).toString().padStart(2, '0');
                 let h = Math.floor(boss.accumulatedMs / 1000 / 3600).toString().padStart(2, '0');
                 let timeStr = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-
                 container.innerHTML += `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:#111; padding:8px; border-radius:4px; margin-bottom:5px; border:1px solid #444;">
                         <div>
@@ -724,22 +686,15 @@
 
         function updateDeaths(amount) { 
             lockDeathButtons();
-            db.ref('elden/deaths').transaction((currentVal) => {
-                return Math.max(0, (currentVal || 0) + amount);
-            });
+            db.ref('elden/deaths').transaction(currentVal => Math.max(0, (currentVal || 0) + amount));
             if (activeBossData && activeBossData.active) {
-                db.ref('elden/current_boss/deaths').transaction((currentVal) => {
-                    return Math.max(0, (currentVal || 0) + amount);
-                });
+                db.ref('elden/current_boss/deaths').transaction(currentVal => Math.max(0, (currentVal || 0) + amount));
             }
         }
 
-        // פונקציית חישוב זמן בוס - תומך בהשהיה
         function getBossElapsed() {
             let elapsed = activeBossData.accumulated || 0;
-            if (activeBossData.isRunning !== false) {
-                elapsed += (Date.now() - activeBossData.startTime);
-            }
+            if (activeBossData.isRunning !== false) elapsed += (Date.now() - activeBossData.startTime);
             return elapsed;
         }
 
@@ -749,8 +704,6 @@
                 if(confirm("Are you sure you want to pause the main timer?")) {
                     let newAcc = timerData.accumulated + (now - timerData.startTime);
                     db.ref('elden/main_timer').set({ isRunning: false, startTime: now, accumulated: newAcc });
-                    
-                    // עוצר גם את הבוס!
                     if (activeBossData && activeBossData.active && activeBossData.isRunning !== false) {
                         let bossAcc = (activeBossData.accumulated || 0) + (now - activeBossData.startTime);
                         db.ref('elden/current_boss').update({ isRunning: false, startTime: now, accumulated: bossAcc });
@@ -758,8 +711,6 @@
                 }
             } else {
                 db.ref('elden/main_timer').set({ isRunning: true, startTime: now, accumulated: timerData.accumulated });
-                
-                // ממשיך גם את הבוס!
                 if (activeBossData && activeBossData.active && activeBossData.isRunning === false) {
                     db.ref('elden/current_boss').update({ isRunning: true, startTime: now });
                 }
@@ -845,26 +796,15 @@
             const name = document.getElementById('cb-name-input').value;
             const img = document.getElementById('cb-img-input').value;
             if(!name) return alert("Enter boss name or select from list");
-            
-            db.ref('elden/current_boss').set({ 
-                active: true, name: name, img: img, 
-                startTime: Date.now(), accumulated: 0, 
-                isRunning: timerData.isRunning, // מסתנכרן עם הטיימר הראשי
-                deaths: 0, status: 'fighting' 
-            });
-            
-            document.getElementById('cb-name-input').value = '';
-            document.getElementById('cb-img-input').value = '';
-            document.getElementById('api-search').value = '';
-            document.getElementById('api-results-container').innerHTML = '';
+            db.ref('elden/current_boss').set({ active: true, name: name, img: img, startTime: Date.now(), accumulated: 0, isRunning: timerData.isRunning, deaths: 0, status: 'fighting' });
+            document.getElementById('cb-name-input').value = ''; document.getElementById('cb-img-input').value = ''; document.getElementById('api-search').value = ''; document.getElementById('api-results-container').innerHTML = '';
         }
 
         function updateLiveBossImage() {
             const newImgUrl = document.getElementById('cb-live-img-input').value.trim();
             if(!newImgUrl) return alert("Enter an image link first");
             if (activeBossData && activeBossData.active) {
-                db.ref('elden/current_boss/img').set(newImgUrl);
-                document.getElementById('cb-live-img-input').value = '';
+                db.ref('elden/current_boss/img').set(newImgUrl); document.getElementById('cb-live-img-input').value = '';
             }
         }
 
@@ -875,67 +815,37 @@
         }
 
         function resumeBossFight() {
-            db.ref('elden/current_boss/status').set('fighting');
-            db.ref('elden/current_boss/defeatTime').remove();
+            db.ref('elden/current_boss/status').set('fighting'); db.ref('elden/current_boss/defeatTime').remove();
         }
 
         function confirmBossDefeat() {
             if(!confirm("⚠️ Are you sure you want to finalize this boss?")) return;
             const deathsCount = activeBossData.deaths || 0;
             const elapsedMs = activeBossData.defeatTime || getBossElapsed();
-            
             let totalSecs = Math.floor(elapsedMs / 1000);
             let h = Math.floor(totalSecs / 3600);
             let m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
             let s = (totalSecs % 60).toString().padStart(2, '0');
             let timeString = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-
             const newBoss = { name: activeBossData.name, img: activeBossData.img, time: timeString, deaths: deathsCount };
-            
-            db.ref('elden/bosses').transaction((currentBossList) => {
-                const list = currentBossList || [];
-                list.push(newBoss);
-                return list;
-            });
+            db.ref('elden/bosses').transaction(list => { const l = list || []; l.push(newBoss); return l; });
             db.ref('elden/current_boss').set({ active: false });
         }
 
         function standbyBossFight() {
             if(!activeBossData || !activeBossData.active) return;
             const elapsed = getBossElapsed();
-            const bossToStandby = {
-                name: activeBossData.name,
-                img: activeBossData.img || '',
-                deaths: activeBossData.deaths || 0,
-                accumulatedMs: elapsed
-            };
-            db.ref('elden/standby_bosses').transaction((currentList) => {
-                const list = currentList || [];
-                list.push(bossToStandby);
-                return list;
-            });
+            const bossToStandby = { name: activeBossData.name, img: activeBossData.img || '', deaths: activeBossData.deaths || 0, accumulatedMs: elapsed };
+            db.ref('elden/standby_bosses').transaction(list => { const l = list || []; l.push(bossToStandby); return l; });
             db.ref('elden/current_boss').set({ active: false });
         }
 
         function resumeStandbyBoss(index) {
-            if(activeBossData && activeBossData.active) {
-                alert("You are currently fighting a boss! Finish or Standby the current boss first.");
-                return;
-            }
+            if(activeBossData && activeBossData.active) return alert("You are currently fighting a boss! Finish or Standby the current boss first.");
             const boss = standbyBosses[index];
             const updatedStandby = standbyBosses.filter((_, i) => i !== index);
             db.ref('elden/standby_bosses').set(updatedStandby);
-
-            db.ref('elden/current_boss').set({
-                active: true,
-                name: boss.name,
-                img: boss.img,
-                deaths: boss.deaths,
-                startTime: Date.now(),
-                accumulated: boss.accumulatedMs,
-                isRunning: timerData.isRunning, // מסתנכרן עם הטיימר הראשי
-                status: 'fighting'
-            });
+            db.ref('elden/current_boss').set({ active: true, name: boss.name, img: boss.img, deaths: boss.deaths, startTime: Date.now(), accumulated: boss.accumulatedMs, isRunning: timerData.isRunning, status: 'fighting' });
         }
 
         function addHistoricalBoss() {
@@ -943,34 +853,16 @@
             const time = document.getElementById('hist-time').value.trim();
             const deaths = document.getElementById('hist-deaths').value || 0;
             const img = document.getElementById('hist-img').value.trim();
-
             if (!name) return alert("You must enter at least the boss name!");
-            
-            // תומך כמעט בכל מבנה תקין של זמן!
-            if (!/^\d{1,2}(:\d{2}){0,3}$/.test(time)) {
-                return alert("Time MUST be in a valid format (e.g., 00, 00:00, 00:00:00, or 00:00:00:00)");
-            }
-
+            if (!/^\d{1,2}(:\d{2}){0,3}$/.test(time)) return alert("Time MUST be in a valid format (e.g., 00, 00:00, 00:00:00, or 00:00:00:00)");
             const newBoss = { name: name, img: img, time: time, deaths: deaths };
-
-            db.ref('elden/bosses').transaction((currentBossList) => {
-                const list = currentBossList || [];
-                list.push(newBoss);
-                return list;
-            });
-
-            document.getElementById('hist-name').value = '';
-            document.getElementById('hist-time').value = '';
-            document.getElementById('hist-deaths').value = '';
-            document.getElementById('hist-img').value = '';
-            document.getElementById('hist-api-search').value = '';
-            document.getElementById('hist-api-results-container').innerHTML = '';
+            db.ref('elden/bosses').transaction(list => { const l = list || []; l.push(newBoss); return l; });
+            document.getElementById('hist-name').value = ''; document.getElementById('hist-time').value = ''; document.getElementById('hist-deaths').value = ''; document.getElementById('hist-img').value = ''; document.getElementById('hist-api-search').value = ''; document.getElementById('hist-api-results-container').innerHTML = '';
         }
 
         function removeBoss(index) {
             if(confirm("Delete this boss from the stream?")) {
-                const updatedBosses = currentBosses.filter((_, i) => i !== index);
-                db.ref('elden/bosses').set(updatedBosses);
+                const updatedBosses = currentBosses.filter((_, i) => i !== index); db.ref('elden/bosses').set(updatedBosses);
             }
         }
 
@@ -978,16 +870,11 @@
         function cancelEdit() { editingIndex = -1; renderBossList(); }
 
         function saveEdit(index) {
-            const newName = document.getElementById(`edit-name-${index}`).value;
-            const newTime = document.getElementById(`edit-time-${index}`).value;
-            const newDeaths = document.getElementById(`edit-deaths-${index}`).value;
+            currentBosses[index].name = document.getElementById(`edit-name-${index}`).value;
+            currentBosses[index].time = document.getElementById(`edit-time-${index}`).value;
+            currentBosses[index].deaths = document.getElementById(`edit-deaths-${index}`).value;
             const newImg = document.getElementById(`edit-img-${index}`).value; 
-
-            currentBosses[index].name = newName;
-            currentBosses[index].time = newTime;
-            currentBosses[index].deaths = newDeaths;
             if(newImg !== undefined) currentBosses[index].img = newImg;
-
             db.ref('elden/bosses').set(currentBosses);
             editingIndex = -1; 
         }

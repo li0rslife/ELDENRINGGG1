@@ -582,24 +582,37 @@
         }
 
         function deleteChatMessage(messageKey) { db.ref('elden/chat/' + messageKey).remove(); }
+        
         function clearChat(e) {
             if(e) e.stopPropagation();
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!")) {
+            let pass = prompt("⚠️ CRITICAL WARNING: Are you sure you want to completely clear the mod chat? This cannot be undone!\n\nהכנס סיסמת מנהל לאישור הפעולה:");
+            if(pass !== null && btoa(pass) === "MTcwNA==") {
                 db.ref('elden/chat').remove(); closeAllMenus();
+            } else if(pass !== null) {
+                alert("❌ סיסמה שגויה! הפעולה בוטלה.");
             }
         }
+
         function resetTimer(e) {
             if(e) e.stopPropagation();
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!")) {
+            let pass = prompt("⚠️ CRITICAL WARNING: Are you sure you want to completely reset the main timer to 00:00:00? This cannot be undone!\n\nהכנס סיסמת מנהל לאישור הפעולה:");
+            if(pass !== null && btoa(pass) === "MTcwNA==") {
                 db.ref('elden/main_timer').set({ isRunning: false, startTime: getNow(), accumulated: 0 }); closeAllMenus();
+            } else if(pass !== null) {
+                alert("❌ סיסמה שגויה! הפעולה בוטלה.");
             }
         }
+
         function resetDeaths(e) {
             if(e) e.stopPropagation();
-            if(confirm("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!")) {
+            let pass = prompt("⚠️ CRITICAL WARNING: Are you sure you want to reset total deaths to 0? This cannot be undone!\n\nהכנס סיסמת מנהל לאישור הפעולה:");
+            if(pass !== null && btoa(pass) === "MTcwNA==") {
                 db.ref('elden/deaths').set(0); closeAllMenus();
+            } else if(pass !== null) {
+                alert("❌ סיסמה שגויה! הפעולה בוטלה.");
             }
         }
+
         function cancelBossFight(e) {
             if(e) e.stopPropagation();
             if(confirm("⚠️ CRITICAL WARNING: Cancel current fight without saving?")) {

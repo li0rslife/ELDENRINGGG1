@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Elden Ring OBS Overlay - DynGlow Paused & Completed Screen</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0; padding: 40px; background-color: transparent; 
+            color: white; font-family: 'Roboto', sans-serif;
+            overflow: hidden; 
+        }
+
+        .relative-box { position: relative; }
+        .orn-layer { transition: opacity 0.3s ease; }
+        .ornament {
+            position: absolute; background-size: contain; background-repeat: no-repeat;
+            background-position: center; pointer-events: none; z-index: 10;
+        }
+
+        .orn-tl { background-image: url('https://cdn.discordapp.com/attachments/1513309836471959583/1516869580302061648/ornament_top_left.png?ex=6a343662&is=6a32e4e2&hm=ef4e8c8aa863f6c85fb5c82a20ce57649106fbea31d7081f81028585746228bd&'); }
+        .orn-br { background-image: url('https://media.discordapp.net/attachments/1513309836471959583/1516869550350532753/ornament_bottom_right.png?ex=6a34365a&is=6a32e4da&hm=2f9da4ed4147730c850a1ce30f99587e2c745af8ffbf1b9fb2278df6388e2451&=&format=webp&quality=lossless&width=282&height=246'); }
+        .orn-deaths-top { background-image: url('https://cdn.discordapp.com/attachments/1513309836471959583/1516901810181509120/1.png?ex=6a345466&is=6a3302e6&hm=8a82d9376c832c5ba9e252819fb8c3f7eba1615f2046a44828aed37e73569eab&'); }
+        .orn-deaths-bottom { background-image: url('https://cdn.discordapp.com/attachments/1513309836471959583/1516901810181509120/1.png?ex=6a345466&is=6a3302e6&hm=8a82d9376c832c5ba9e252819fb8c3f7eba1615f2046a44828aed37e73569eab&'); }
+        .orn-rc-top { background-image: url('https://media.discordapp.net/attachments/1513309836471959583/1516901927244271657/2.png?ex=6a345482&is=6a330302&hm=1df69d1defc515d3a86600353e5bab4a385c1b4453f943901d1329e77525ef92&=&format=webp&quality=lossless&width=1436&height=344'); }
+        .orn-rc-bottom { background-image: url('https://cdn.discordapp.com/attachments/1513309836471959583/1516901810181509120/1.png?ex=6a345466&is=6a3302e6&hm=8a82d9376c832c5ba9e252819fb8c3f7eba1615f2046a44828aed37e73569eab&'); }
+        
+        .orn-corner { width: 110px; height: 110px; }
+        .orn-tl { top: -25px; left: -17px; }
+        .orn-br { bottom: -25px; right: -17px; }
+        .orn-deaths-top { top: -15px; left: 50%; transform: translateX(-50%) rotateX(180deg); width: 170px; height: 40px; }
+        .orn-deaths-bottom { bottom: -15px; left: 50%; transform: translateX(-50%); width: 170px; height: 40px; }
+        .orn-rc-top { top: -45px; left: 50%; transform: translateX(-50%); width: 380px; height: 95px; }
+        .orn-rc-bottom { bottom: -18px; left: 50%; transform: translateX(-50%); width: 300px; height: 45px; background-size: contain; }
+
+        #normal-overlay { display: flex; gap: 40px; align-items: flex-start; }
+
+        .deaths-container {
+            background: linear-gradient(180deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
+            border: 1px solid #3a3a3a; border-radius: 8px; padding: 25px 0 15px 0; 
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); width: 150px; box-sizing: border-box;
+            transition: background 0.3s ease;
+        }
+        .deaths-title { color: #ff4a4a; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 2px; margin-bottom: -5px; font-weight: bold; }
+        .deaths-number { color: #cc3333; font-size: 48px; font-weight: bold; font-family: 'Cinzel', serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); line-height: 1.1; }
+
+        .right-panel {
+            background: linear-gradient(180deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
+            border: 1px solid #3a3a3a; border-radius: 8px; width: 320px; box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            transition: background 0.3s ease;
+        }
+
+        .timer-container { padding: 20px; text-align: center; color: #d4af37; font-size: 42px; font-family: 'Cinzel', serif; font-weight: bold; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        .timer-paused { color: #888 !important; } 
+
+        .divider { height: 1px; background: #3a3a3a; margin: 0 20px; border: none; }
+        .section-content { padding: 20px; }
+        .section-header { color: #d4af37; font-size: 13px; font-family: 'Cinzel', serif; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: bold; }
+
+        .now-fighting-box { border: 1px solid #554422; background: rgba(30, 25, 15, 0.6); border-radius: 6px; padding: 10px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .boss-img-large { width: 60px; height: 60px; border-radius: 6px; border: 1px solid #775522; object-fit: cover; }
+        .nf-details { display: flex; flex-direction: column; gap: 5px; }
+        .nf-name { font-weight: bold; font-size: 16px; font-family: 'Cinzel', serif; color: #fff; }
+        .nf-timer { color: #aaa; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+
+        .defeated-icons-container { display: flex; gap: 8px; overflow: hidden; flex-wrap: wrap; }
+        .defeated-icon-small { width: 45px; height: 45px; border-radius: 4px; border: 1px solid #444; object-fit: cover; filter: grayscale(50%); }
+
+        .bosses-wrapper {
+            height: 200px; overflow: hidden; position: relative;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+        .boss-list { display: flex; flex-direction: column; animation: scrollUp 15s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(200px); } 100% { transform: translateY(-100%); } }
+        
+        .boss-item { display: flex; align-items: center; margin-bottom: 15px; }
+        .boss-icon-medium { width: 40px; height: 40px; background: #222; border-radius: 4px; margin-right: 15px; border: 1px solid #555; object-fit: cover; }
+        .boss-details-prompter { display: flex; flex-direction: column; }
+        .boss-name-prompter { font-weight: bold; font-size: 13px; text-transform: uppercase; color: #ddd; }
+        .boss-stats-prompter { color: #aaa; font-size: 11px; margin-top: 4px; }
+        
+        .boss-deaths-prompter-normal { font-weight: bold; color: #ff4a4a; }
+        #cb-deaths { font-weight: bold; color: #ff4a4a; }
+
+        #completed-overlay {
+            background: linear-gradient(180deg, rgba(20,20,20,0.98) 0%, rgba(5,5,5,0.98) 100%);
+            border: 1px solid #4a3c1c; border-radius: 12px; padding: 40px 20px 20px 20px; 
+            box-shadow: 0 4px 30px rgba(0,0,0,0.9); display: none; flex-direction: column; 
+            align-items: center; width: 490px; box-sizing: border-box; margin: 0; 
+            transition: background 0.3s ease;
+        }
+        .rc-title { color: #d4af37; font-size: 34px; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 4px; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); margin-bottom: 30px; text-align: center; }
+        .rc-stats { display: flex; justify-content: space-around; width: 100%; text-align: center; margin-bottom: 20px; box-sizing: border-box; padding: 0 10px; }
+        .rc-stat-box { display: flex; flex-direction: column; align-items: center; }
+        .rc-num { color: #d4af37; font-size: 30px; font-weight: bold; font-family: 'Cinzel', serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        .rc-label { color: #888; font-size: 11px; font-weight: bold; letter-spacing: 2px; margin-top: 8px; text-transform: uppercase; }
+        .rc-divider { height: 1px; width: 80%; background: #3a3a3a; margin-top: 10px; border: none; margin-bottom: 25px; }
+
+        .rc-prompter-container { width: 90%; background: rgba(0, 0, 0, 0.4); border-radius: 8px; border: 1px solid #222; padding: 10px 20px; box-sizing: border-box; }
+
+        /* --- אנימציות לגלאו לכל האלמנטים הרלוונטיים --- */
+        #main-timer, #rc-time, #death-counter, #rc-deaths, #rc-bosses,
+        .boss-name-prompter-rc, .boss-deaths-prompter-rc,
+        .boss-deaths-prompter-normal, #cb-deaths {
+            transition: text-shadow 0.15s ease-out, color 0.15s ease-out;
+        }
+
+        .boss-name-prompter-rc { font-weight: bold; font-size: 13px; text-transform: uppercase; color: #ddd; }
+        .boss-deaths-prompter-rc { font-weight: bold; color: #ff4a4a; }
+    </style>
+</head>
+<body>
+
+    <div id="normal-overlay">
+        
+        <div class="deaths-container relative-box">
+            <div class="ornament orn-deaths-top orn-layer"></div>
+            <div class="ornament orn-deaths-bottom orn-layer"></div>
+            <div class="deaths-title">💀 DEATHS</div>
+            <div class="deaths-number" id="death-counter">0</div>
+        </div>
+
+        <div class="right-panel relative-box">
+            <div class="ornament orn-corner orn-tl orn-layer"></div>
+            <div class="ornament orn-corner orn-br orn-layer"></div>
+            <div class="timer-container" id="main-timer">00:00:00</div>
+            <hr class="divider">
+
+            <div id="view-fighting" class="section-content">
+                <div class="section-header">⚔️ NOW FIGHTING</div>
+                <div class="now-fighting-box" id="active-boss-box" style="display: none;">
+                    <img id="cb-img" class="boss-img-large" src="" alt="Boss">
+                    <div class="nf-details">
+                        <div class="nf-name" id="cb-name">---</div>
+                        <div class="nf-timer">
+                            ⏱️ <span id="cb-timer">00:00:00</span>
+                            <span id="cb-deaths">💀 0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-header" id="defeated-header-icons">🏰 DEFEATED (0)</div>
+                <div class="defeated-icons-container" id="defeated-icons-list"></div>
+            </div>
+
+            <div id="view-sleeping" class="section-content" style="display: none;">
+                <div class="section-header" id="defeated-header-prompter">🏰 DEFEATED (0)</div>
+                <div class="bosses-wrapper">
+                    <div class="boss-list" id="prompter-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="completed-overlay" class="relative-box">
+        <div class="ornament orn-rc-top orn-layer"></div>
+        <div class="ornament orn-rc-bottom orn-layer"></div>
+        <div class="rc-title">RUN COMPLETE</div>
+        <div class="rc-stats">
+            <div class="rc-stat-box">
+                <div class="rc-num" id="rc-time">00:00:00</div>
+                <div class="rc-label">TOTAL TIME</div>
+            </div>
+            <div class="rc-stat-box">
+                <div class="rc-num" id="rc-deaths">0</div>
+                <div class="rc-label">DEATHS</div>
+            </div>
+            <div class="rc-stat-box">
+                <div class="rc-num" id="rc-bosses">0</div>
+                <div class="rc-label">BOSSES</div>
+            </div>
+        </div>
+        <hr class="rc-divider">
+        <div class="rc-prompter-container">
+            <div class="bosses-wrapper">
+                <div class="boss-list" id="rc-prompter-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://eldenring-6b07a-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let timerData = { isRunning: true, startTime: Date.now(), accumulated: 0 };
+        let currentBossData = null; 
+        let currentGlowLevel = 0; 
+        let currentDisplayMode = 'fighting';
+
+        // סנכרון זמן מול השרת למניעת קפיצות בשעון
+        let serverOffset = 0;
+        db.ref('.info/serverTimeOffset').on('value', snap => {
+            serverOffset = snap.val() || 0;
+        });
+        function getNow() {
+            return Date.now() + serverOffset;
+        }
+
+        // --- שקיפות עיטורים ---
+        db.ref('elden/settings/ornaments_opacity').on('value', snap => {
+            let val = snap.val();
+            if (val === null) val = 1; 
+            const ornaments = document.querySelectorAll('.orn-layer');
+            ornaments.forEach(el => el.style.opacity = val);
+        });
+
+        // --- שקיפות רקע ---
+        db.ref('elden/settings/bg_opacity').on('value', snap => {
+            let val = snap.val();
+            if (val === null) val = 0.95; 
+            
+            const deathsContainer = document.querySelector('.deaths-container');
+            const rightPanel = document.querySelector('.right-panel');
+            const completedOverlay = document.getElementById('completed-overlay');
+
+            if(deathsContainer) deathsContainer.style.background = `linear-gradient(180deg, rgba(20,20,20,${val}) 0%, rgba(10,10,10,${val}) 100%)`;
+            if(rightPanel) rightPanel.style.background = `linear-gradient(180deg, rgba(20,20,20,${val}) 0%, rgba(10,10,10,${val}) 100%)`;
+            if(completedOverlay) completedOverlay.style.background = `linear-gradient(180deg, rgba(20,20,20,${val}) 0%, rgba(5,5,5,${val}) 100%)`;
+        });
+
+        // --- עדכון גלאו וצבעים ---
+        function applyGlow() {
+            const opacity = currentGlowLevel / 100;
+            const blur1 = opacity * 10;
+            const blur2 = opacity * 20;
+            const baseShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+
+            const isPaused = !timerData.isRunning;
+            const mainTimerGlowColor = isPaused ? `rgba(136, 136, 136, ${opacity})` : `rgba(212, 175, 55, ${opacity})`;
+            const goldGlowColor = `rgba(212, 175, 55, ${opacity})`;
+            const redGlowColor = `rgba(204, 51, 51, ${opacity})`;
+
+            const mainTimerShadow = currentGlowLevel > 0 ? `${baseShadow}, 0 0 ${blur1}px ${mainTimerGlowColor}, 0 0 ${blur2}px ${mainTimerGlowColor}` : baseShadow;
+            const goldShadow = currentGlowLevel > 0 ? `${baseShadow}, 0 0 ${blur1}px ${goldGlowColor}, 0 0 ${blur2}px ${goldGlowColor}` : baseShadow;
+            const redShadow = currentGlowLevel > 0 ? `${baseShadow}, 0 0 ${blur1}px ${redGlowColor}, 0 0 ${blur2}px ${redGlowColor}` : baseShadow;
+
+            // --- טיימרים ---
+            const mainTimer = document.getElementById('main-timer');
+            const rcTime = document.getElementById('rc-time');
+            
+            if (mainTimer) {
+                mainTimer.style.textShadow = mainTimerShadow;
+                mainTimer.style.color = isPaused ? '#888' : '#d4af37';
+            }
+            if (rcTime) {
+                rcTime.style.textShadow = goldShadow;
+                rcTime.style.color = '#d4af37'; 
+            }
+
+            // --- מיתות במסך הרגיל (אדום) ---
+            const deathCounter = document.getElementById('death-counter');
+            const cbDeaths = document.getElementById('cb-deaths');
+            const normalBossDeaths = document.querySelectorAll('.boss-deaths-prompter-normal');
+
+            if (deathCounter) {
+                deathCounter.style.textShadow = redShadow;
+                deathCounter.style.color = '#cc3333';
+            }
+            if (cbDeaths) {
+                cbDeaths.style.textShadow = redShadow;
+                cbDeaths.style.color = '#ff4a4a';
+            }
+            normalBossDeaths.forEach(el => {
+                el.style.textShadow = redShadow;
+                el.style.color = '#ff4a4a'; 
+            });
+
+            // --- נתונים במסך הסיום (זהב/צהוב) ---
+            const rcDeaths = document.getElementById('rc-deaths');
+            const rcBosses = document.getElementById('rc-bosses');
+            const rcBossNames = document.querySelectorAll('.boss-name-prompter-rc');
+            const rcBossDeaths = document.querySelectorAll('.boss-deaths-prompter-rc');
+
+            if (rcDeaths) {
+                rcDeaths.style.textShadow = goldShadow; // צל זהב
+                rcDeaths.style.color = '#d4af37';       // טקסט זהב
+            }
+            if (rcBosses) {
+                rcBosses.style.textShadow = goldShadow; // צל זהב
+                rcBosses.style.color = '#d4af37';       // טקסט זהב
+            }
+            rcBossNames.forEach(el => {
+                el.style.textShadow = goldShadow;
+                el.style.color = currentGlowLevel > 0 ? '#fff' : '#ddd'; 
+            });
+            rcBossDeaths.forEach(el => {
+                el.style.textShadow = goldShadow; // צל זהב
+                el.style.color = '#d4af37';       // טקסט זהב במקום אדום
+            });
+        }
+
+        db.ref('elden/settings/glow_level').on('value', snap => {
+            let val = snap.val();
+            if (val === null) val = 0; 
+            currentGlowLevel = val;
+            applyGlow(); 
+        });
+
+        db.ref('elden/main_timer').on('value', snap => {
+            if (snap.val()) {
+                timerData = snap.val();
+                applyGlow(); 
+            }
+        });
+
+        function formatTime(ms) {
+            let totalSecs = Math.floor(ms / 1000);
+            let h = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
+            let m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
+            let s = (totalSecs % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        // רץ כל עשירית שנייה (100ms) כדי למנוע קפיצות זמן בעצירה ובהפעלה
+        setInterval(() => {
+            let elapsed = timerData.accumulated || 0;
+            if (timerData.isRunning) {
+                elapsed += (getNow() - timerData.startTime);
+            }
+            
+            const timeFormatted = formatTime(elapsed);
+            document.getElementById('main-timer').innerText = timeFormatted;
+            document.getElementById('rc-time').innerText = timeFormatted;
+            
+            if (currentBossData && currentBossData.active) {
+                let bossElapsed = currentBossData.accumulated || 0;
+                if (currentBossData.isRunning !== false) {
+                    bossElapsed += (getNow() - currentBossData.startTime);
+                }
+                document.getElementById('cb-timer').innerText = formatTime(bossElapsed);
+            }
+        }, 100);
+
+        db.ref('elden/deaths').on('value', snap => {
+            const deathsCount = snap.val() || 0;
+            document.getElementById('death-counter').innerText = deathsCount;
+            document.getElementById('rc-deaths').innerText = deathsCount;
+        });
+
+        db.ref('elden/display_mode').on('value', snap => {
+            const mode = snap.val() || 'fighting';
+            currentDisplayMode = mode;
+            
+            if (mode === 'completed') {
+                document.getElementById('normal-overlay').style.display = 'none';
+                document.getElementById('completed-overlay').style.display = 'flex';
+                setTimeout(applyGlow, 50); 
+            } else {
+                document.getElementById('completed-overlay').style.display = 'none';
+                document.getElementById('normal-overlay').style.display = 'flex';
+                document.getElementById('view-fighting').style.display = mode === 'fighting' ? 'block' : 'none';
+                document.getElementById('view-sleeping').style.display = mode === 'sleeping' ? 'block' : 'none';
+            }
+        });
+
+        db.ref('elden/current_boss').on('value', snap => {
+            const cb = snap.val();
+            currentBossData = cb; 
+            const box = document.getElementById('active-boss-box');
+            if (cb && cb.active) {
+                box.style.display = 'flex';
+                document.getElementById('cb-name').innerText = cb.name;
+                document.getElementById('cb-img').src = cb.img || 'https://via.placeholder.com/60/333333/FFFFFF?text=💀';
+                document.getElementById('cb-deaths').innerText = `💀 ${cb.deaths || 0}`;
+                setTimeout(applyGlow, 50); 
+            } else {
+                box.style.display = 'none';
+            }
+        });
+
+        db.ref('elden/bosses').on('value', snap => {
+            const bosses = snap.val() || [];
+            document.getElementById('defeated-header-icons').innerText = `🏰 DEFEATED (${bosses.length})`;
+            document.getElementById('defeated-header-prompter').innerText = `🏰 DEFEATED (${bosses.length})`;
+            document.getElementById('rc-bosses').innerText = bosses.length;
+
+            const iconsContainer = document.getElementById('defeated-icons-list');
+            const prompterContainer = document.getElementById('prompter-list');
+            const rcPrompterContainer = document.getElementById('rc-prompter-list'); 
+            
+            iconsContainer.innerHTML = '';
+            prompterContainer.innerHTML = '';
+            rcPrompterContainer.innerHTML = '';
+
+            const last5Bosses = bosses.slice(-5);
+            last5Bosses.forEach((boss) => {
+                const imgUrl = boss.img || 'https://via.placeholder.com/45/333333/FFFFFF?text=💀';
+                iconsContainer.innerHTML += `<img class="defeated-icon-small" src="${imgUrl}">`;
+            });
+
+            bosses.forEach((boss) => {
+                const imgUrl = boss.img || 'https://via.placeholder.com/45/333333/FFFFFF?text=💀';
+                
+                const normalPrompterHTML = `
+                    <div class="boss-item">
+                        <img class="boss-icon-medium" src="${imgUrl}">
+                        <div class="boss-details-prompter">
+                            <div class="boss-name-prompter">${boss.name}</div>
+                            <div class="boss-stats-prompter">⏱️ ${boss.time} <span class="boss-deaths-prompter-normal">💀 ${boss.deaths} deaths</span></div>
+                        </div>
+                    </div>`;
+                
+                const rcPrompterHTML = `
+                    <div class="boss-item">
+                        <img class="boss-icon-medium" src="${imgUrl}">
+                        <div class="boss-details-prompter">
+                            <div class="boss-name-prompter-rc">${boss.name}</div>
+                            <div class="boss-stats-prompter">⏱️ ${boss.time} <span class="boss-deaths-prompter-rc">💀 ${boss.deaths} deaths</span></div>
+                        </div>
+                    </div>`;
+
+                prompterContainer.innerHTML += normalPrompterHTML;
+                rcPrompterContainer.innerHTML += rcPrompterHTML;
+            });
+
+            setTimeout(applyGlow, 50);
+        });
+    </script>
+</body>
+</html>

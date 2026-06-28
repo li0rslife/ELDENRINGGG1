@@ -28,7 +28,7 @@
         
         .orn-tl { 
             background-image: url('1.png'); 
-            top: -22px; left: -13px; 
+            top: -22px; left: -14px; 
         }
         .orn-tr { 
             background-image: url('1.png'); 
@@ -42,7 +42,7 @@
         }
         .orn-br { 
             background-image: url('2.png'); 
-            bottom: -21px; right: -13px; 
+            bottom: -21px; right: -15px; 
         }
 
         /* --- עיטורים עליונים ותחתונים למסכים --- */
@@ -121,7 +121,7 @@
         .rc-prompter-container { width: 90%; background: rgba(0, 0, 0, 0.4); border-radius: 8px; border: 1px solid #222; padding: 10px 20px; box-sizing: border-box; }
 
         /* --- אנימציות לגלאו לכל האלמנטים הרלוונטיים --- */
-        #main-timer, #rc-time, #death-counter, #rc-deaths, 
+        #main-timer, #rc-time, #death-counter, #rc-deaths, #rc-bosses, .rc-title,
         .boss-name-prompter-rc, .boss-deaths-prompter-rc,
         .boss-deaths-prompter-normal, #cb-deaths {
             transition: text-shadow 0.15s ease-out, color 0.15s ease-out;
@@ -175,8 +175,6 @@
     </div>
 
     <div id="completed-overlay" class="relative-box">
-        <div class="ornament orn-corner orn-tl orn-layer"></div>
-        <div class="ornament orn-corner orn-br orn-layer"></div>
         
         <div class="ornament orn-rc-top orn-layer"></div>
         <div class="ornament orn-rc-bottom orn-layer"></div>
@@ -292,14 +290,24 @@
                 el.style.color = '#ff4a4a'; 
             });
 
-            // --- מיתות במסך הסיום (זהב/צהוב) ---
+            // --- תוספות לסיום (זהב/צהוב) ---
             const rcDeaths = document.getElementById('rc-deaths');
+            const rcBosses = document.getElementById('rc-bosses');
+            const rcTitle = document.querySelector('.rc-title');
             const rcBossNames = document.querySelectorAll('.boss-name-prompter-rc');
             const rcBossDeaths = document.querySelectorAll('.boss-deaths-prompter-rc');
 
             if (rcDeaths) {
                 rcDeaths.style.textShadow = goldShadow; 
                 rcDeaths.style.color = '#d4af37';       
+            }
+            if (rcBosses) {
+                rcBosses.style.textShadow = goldShadow;
+                rcBosses.style.color = '#d4af37';
+            }
+            if (rcTitle) {
+                rcTitle.style.textShadow = goldShadow;
+                rcTitle.style.color = '#d4af37';
             }
             rcBossNames.forEach(el => {
                 el.style.textShadow = goldShadow;

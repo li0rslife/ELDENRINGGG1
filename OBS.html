@@ -9,9 +9,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Roboto:wght@400;700&display=swap');
 
         body {
-            margin: 0; padding: 40px; background-color: transparent; 
+            /* הוספנו 50px למעלה כדי שהעיטור העליון לא ייחתך בטעות מחוץ לגבולות ה-Browser Source */
+            margin: 0; padding: 50px 40px 40px 40px; background-color: transparent; 
             color: white; font-family: 'Roboto', sans-serif;
             overflow: hidden; 
+        }
+
+        /* --- קופסת עוגן קבועה כדי ש-OBS לא יזיז שום דבר לעולם --- */
+        #obs-bounding-box {
+            position: relative;
+            width: 510px; 
+            height: 480px; 
         }
 
         .relative-box { position: relative; }
@@ -28,7 +36,7 @@
         
         .orn-tl { 
             background-image: url('1.png'); 
-            top: -22px; left: -14px; 
+            top: -1px; left: -1px; 
         }
         .orn-tr { 
             background-image: url('1.png'); 
@@ -42,7 +50,7 @@
         }
         .orn-br { 
             background-image: url('2.png'); 
-            bottom: -21px; right: -15px; 
+            bottom: -1px; right: -1px; 
         }
 
         /* --- עיטורים עליונים ותחתונים למסכים --- */
@@ -53,7 +61,11 @@
 
         /* ------------------------------------------ */
 
-        #normal-overlay { display: flex; gap: 40px; align-items: flex-start; }
+        #normal-overlay { 
+            display: flex; gap: 40px; align-items: flex-start; 
+            position: absolute; top: 0; left: 0; /* נעילה לקופסת העוגן */
+            width: 100%;
+        }
 
         .deaths-container {
             background: linear-gradient(180deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
@@ -108,8 +120,12 @@
             background: linear-gradient(180deg, rgba(20,20,20,0.98) 0%, rgba(5,5,5,0.98) 100%);
             border: 1px solid #4a3c1c; border-radius: 12px; padding: 40px 20px 20px 20px; 
             box-shadow: 0 4px 30px rgba(0,0,0,0.9); display: none; flex-direction: column; 
-            align-items: center; width: 490px; box-sizing: border-box; margin: 0; 
+            align-items: center; 
+            width: 510px; /* הותאם בדיוק למרווח ולרוחב של המסך הרגיל */
+            box-sizing: border-box; margin: 0; 
             transition: background 0.3s ease;
+            position: absolute; top: 0; left: 0; /* נעילה לקופסת העוגן */
+            min-height: 420px;
         }
         .rc-title { color: #d4af37; font-size: 34px; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 4px; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); margin-bottom: 30px; text-align: center; }
         .rc-stats { display: flex; justify-content: space-around; width: 100%; text-align: center; margin-bottom: 20px; box-sizing: border-box; padding: 0 10px; }
@@ -133,73 +149,80 @@
 </head>
 <body>
 
-    <div id="normal-overlay">
-        
-        <div class="deaths-container relative-box">
-            <div class="ornament orn-deaths-top orn-layer"></div>
-            <div class="ornament orn-deaths-bottom orn-layer"></div>
-            <div class="deaths-title">💀 DEATHS</div>
-            <div class="deaths-number" id="death-counter">0</div>
-        </div>
+    <!-- קופסת העוגן ששומרת על הגבולות יציבים עבור OBS -->
+    <div id="obs-bounding-box">
 
-        <div class="right-panel relative-box">
-            <div class="ornament orn-corner orn-tl orn-layer"></div>
-            <div class="ornament orn-corner orn-br orn-layer"></div>
+        <div id="normal-overlay">
             
-            <div class="timer-container" id="main-timer">00:00:00</div>
-            <hr class="divider">
+            <div class="deaths-container relative-box">
+                <div class="ornament orn-deaths-top orn-layer"></div>
+                <div class="ornament orn-deaths-bottom orn-layer"></div>
+                <div class="deaths-title">💀 DEATHS</div>
+                <div class="deaths-number" id="death-counter">0</div>
+            </div>
 
-            <div id="view-fighting" class="section-content">
-                <div class="section-header">⚔️ NOW FIGHTING</div>
-                <div class="now-fighting-box" id="active-boss-box" style="display: none;">
-                    <img id="cb-img" class="boss-img-large" src="" alt="Boss">
-                    <div class="nf-details">
-                        <div class="nf-name" id="cb-name">---</div>
-                        <div class="nf-timer">
-                            ⏱️ <span id="cb-timer">00:00:00</span>
-                            <span id="cb-deaths">💀 0</span>
+            <div class="right-panel relative-box">
+                <div class="ornament orn-corner orn-tl orn-layer"></div>
+                <div class="ornament orn-corner orn-tr orn-layer"></div>
+                <div class="ornament orn-corner orn-bl orn-layer"></div>
+                <div class="ornament orn-corner orn-br orn-layer"></div>
+                
+                <div class="timer-container" id="main-timer">00:00:00</div>
+                <hr class="divider">
+
+                <div id="view-fighting" class="section-content">
+                    <div class="section-header">⚔️ NOW FIGHTING</div>
+                    <div class="now-fighting-box" id="active-boss-box" style="display: none;">
+                        <img id="cb-img" class="boss-img-large" src="" alt="Boss">
+                        <div class="nf-details">
+                            <div class="nf-name" id="cb-name">---</div>
+                            <div class="nf-timer">
+                                ⏱️ <span id="cb-timer">00:00:00</span>
+                                <span id="cb-deaths">💀 0</span>
+                            </div>
                         </div>
                     </div>
+                    <div class="section-header" id="defeated-header-icons">🏰 DEFEATED (0)</div>
+                    <div class="defeated-icons-container" id="defeated-icons-list"></div>
                 </div>
-                <div class="section-header" id="defeated-header-icons">🏰 DEFEATED (0)</div>
-                <div class="defeated-icons-container" id="defeated-icons-list"></div>
-            </div>
 
-            <div id="view-sleeping" class="section-content" style="display: none;">
-                <div class="section-header" id="defeated-header-prompter">🏰 DEFEATED (0)</div>
+                <div id="view-sleeping" class="section-content" style="display: none;">
+                    <div class="section-header" id="defeated-header-prompter">🏰 DEFEATED (0)</div>
+                    <div class="bosses-wrapper">
+                        <div class="boss-list" id="prompter-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="completed-overlay" class="relative-box">
+            
+            <div class="ornament orn-rc-top orn-layer"></div>
+            <div class="ornament orn-rc-bottom orn-layer"></div>
+            
+            <div class="rc-title">RUN COMPLETE</div>
+            <div class="rc-stats">
+                <div class="rc-stat-box">
+                    <div class="rc-num" id="rc-time">00:00:00</div>
+                    <div class="rc-label">TOTAL TIME</div>
+                </div>
+                <div class="rc-stat-box">
+                    <div class="rc-num" id="rc-deaths">0</div>
+                    <div class="rc-label">DEATHS</div>
+                </div>
+                <div class="rc-stat-box">
+                    <div class="rc-num" id="rc-bosses">0</div>
+                    <div class="rc-label">BOSSES</div>
+                </div>
+            </div>
+            <hr class="rc-divider">
+            <div class="rc-prompter-container">
                 <div class="bosses-wrapper">
-                    <div class="boss-list" id="prompter-list"></div>
+                    <div class="boss-list" id="rc-prompter-list"></div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="completed-overlay" class="relative-box">
-        
-        <div class="ornament orn-rc-top orn-layer"></div>
-        <div class="ornament orn-rc-bottom orn-layer"></div>
-        
-        <div class="rc-title">RUN COMPLETE</div>
-        <div class="rc-stats">
-            <div class="rc-stat-box">
-                <div class="rc-num" id="rc-time">00:00:00</div>
-                <div class="rc-label">TOTAL TIME</div>
-            </div>
-            <div class="rc-stat-box">
-                <div class="rc-num" id="rc-deaths">0</div>
-                <div class="rc-label">DEATHS</div>
-            </div>
-            <div class="rc-stat-box">
-                <div class="rc-num" id="rc-bosses">0</div>
-                <div class="rc-label">BOSSES</div>
-            </div>
-        </div>
-        <hr class="rc-divider">
-        <div class="rc-prompter-container">
-            <div class="bosses-wrapper">
-                <div class="boss-list" id="rc-prompter-list"></div>
-            </div>
-        </div>
     </div>
 
     <script>

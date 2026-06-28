@@ -52,11 +52,12 @@
         /* ------------------------------------------ */
 
         #normal-overlay { 
-            display: flex; gap: 40px; align-items: flex-start; 
-            position: absolute; top: 0; left: 0; /* נעילה לקופסת העוגן */
-            width: 100%;
-        }
-
+    display: flex; gap: 40px; align-items: flex-start; 
+    position: absolute; 
+    top: 20px; /* כאן אתה שולט כמה המצבים הרגילים יעלו למעלה. שנה את זה ל-0 או ערך שלילי אם צריך עוד למעלה */
+    left: 0; 
+    width: 100%;
+}
         .deaths-container {
             background: linear-gradient(180deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
             border: 1px solid #3a3a3a; border-radius: 8px; padding: 25px 0 15px 0; 
